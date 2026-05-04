@@ -31,6 +31,7 @@ class OILM_Plugin {
 		require_once OILM_PLUGIN_DIR . 'includes/class-content-processor.php';
 		require_once OILM_PLUGIN_DIR . 'includes/class-elementor-compat.php';
 		require_once OILM_PLUGIN_DIR . 'includes/class-woocommerce-compat.php';
+		require_once OILM_PLUGIN_DIR . 'includes/class-acf-compat.php';
 	}
 
 	private function define_admin_hooks() {
@@ -76,6 +77,9 @@ class OILM_Plugin {
 
 		$wc_compat = new OILM_WooCommerce_Compat( $processor );
 		$wc_compat->init();
+
+		$acf_compat = new OILM_ACF_Compat( $processor );
+		$acf_compat->init();
 	}
 
 	public function run() {
