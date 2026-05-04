@@ -1,5 +1,5 @@
 === Internal Link Manager ===
-Contributors: outpace
+Contributors: riteshthapa
 Tags: internal links, seo, auto link
 Requires at least: 5.0
 Tested up to: 6.4
