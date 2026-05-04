@@ -63,6 +63,14 @@ class OILM_Plugin {
 		// Priority 99 to ensure it runs late after most shortcodes and formatting
 		add_filter( 'the_content', array( $processor, 'process_content' ), 99 );
 
+		if ( isset( $settings['process_excerpts'] ) && $settings['process_excerpts'] ) {
+			add_filter( 'get_the_excerpt', array( $processor, 'process_content' ), 99 );
+		}
+
+		if ( isset( $settings['process_comments'] ) && $settings['process_comments'] ) {
+			add_filter( 'comment_text', array( $processor, 'process_content' ), 99 );
+		}
+
 		$elementor_compat = new OILM_Elementor_Compat( $processor );
 		$elementor_compat->init();
 

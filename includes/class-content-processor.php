@@ -54,12 +54,20 @@ class OILM_Content_Processor {
 				return $content;
 			}
 			
-			// Exclude current page linking to itself
+			// Exclude current page linking to itself, and explicit post IDs
 			global $post;
-			if ( $post && in_array( $post->ID, $this->processed_posts ) ) {
-				return $content; // Already processed this post in this request
-			}
 			if ( $post ) {
+				// Check specific exclusions
+				if ( ! empty( $this->settings['exclude_post_ids'] ) ) {
+					$excluded_ids = array_map( 'trim', explode( ',', $this->settings['exclude_post_ids'] ) );
+					if ( in_array( $post->ID, $excluded_ids ) ) {
+						return $content;
+					}
+				}
+
+				if ( in_array( $post->ID, $this->processed_posts ) ) {
+					return $content; // Already processed this post in this request
+				}
 				$this->processed_posts[] = $post->ID;
 			}
 		}
@@ -96,16 +104,26 @@ class OILM_Content_Processor {
 			$exclusions = array_merge( $exclusions, array('h1', 'h2', 'h3', 'h4', 'h5', 'h6') );
 		}
 
+		if ( isset( $this->settings['exclude_elements'] ) && is_array( $this->settings['exclude_elements'] ) ) {
+			$exclusions = array_merge( $exclusions, $this->settings['exclude_elements'] );
+		}
+
 		$query = "//text()[not(ancestor::" . implode(') and not(ancestor::', $exclusions) . ")]";
 		$text_nodes = $xpath->query( $query );
 
 		$global_max = isset( $this->settings['global_max_links'] ) ? absint( $this->settings['global_max_links'] ) : 0;
 		$global_url_max = isset( $this->settings['global_max_url_links'] ) ? absint( $this->settings['global_max_url_links'] ) : 0;
+		$first_occurrence_only = isset( $this->settings['first_occurrence_only'] ) && $this->settings['first_occurrence_only'];
+		$enable_pluralization = isset( $this->settings['enable_pluralization'] ) && $this->settings['enable_pluralization'];
 
 		$updates_made = false;
 		$rules_hit = array(); // Track which rules were used for stats
 
 		foreach ( $text_nodes as $node ) {
+			if ( $first_occurrence_only && $this->page_links_count >= 1 ) {
+				break;
+			}
+			
 			if ( $global_max > 0 && $this->page_links_count >= $global_max ) {
 				break;
 			}
@@ -153,10 +171,12 @@ class OILM_Content_Processor {
 					// Prepare regex
 					$escaped_kw = preg_quote( $keyword, '/' );
 					
+					$plural_suffix = $enable_pluralization ? '(?:s|es)?' : '';
+
 					if ( $rule['is_exact_match'] ) {
-						$pattern = '/\b(' . $escaped_kw . ')\b/u'; // Case sensitive whole word
+						$pattern = '/\b(' . $escaped_kw . $plural_suffix . ')\b/u'; // Case sensitive whole word
 					} else {
-						$pattern = '/\b(' . $escaped_kw . ')\b/iu'; // Case insensitive whole word
+						$pattern = '/\b(' . $escaped_kw . $plural_suffix . ')\b/iu'; // Case insensitive whole word
 					}
 
 					if ( preg_match( $pattern, $text, $matches ) ) {
