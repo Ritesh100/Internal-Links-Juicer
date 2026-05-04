@@ -111,6 +111,13 @@ class OILM_Content_Processor {
 		$query = "//text()[not(ancestor::" . implode(') and not(ancestor::', $exclusions) . ")]";
 		$text_nodes = $xpath->query( $query );
 
+		// Extract existing links to avoid duplicating static links
+		$existing_hrefs = array();
+		$anchors = $xpath->query('//a/@href');
+		foreach ( $anchors as $anchor ) {
+			$existing_hrefs[] = rtrim( $anchor->nodeValue, '/' );
+		}
+
 		$global_max = isset( $this->settings['global_max_links'] ) ? absint( $this->settings['global_max_links'] ) : 0;
 		$global_url_max = isset( $this->settings['global_max_url_links'] ) ? absint( $this->settings['global_max_url_links'] ) : 0;
 		$first_occurrence_only = isset( $this->settings['first_occurrence_only'] ) && $this->settings['first_occurrence_only'];
@@ -137,6 +144,11 @@ class OILM_Content_Processor {
 			$replaced = false;
 
 			foreach ( $this->rules as $rule ) {
+				// Check if the URL is already linked statically in the content
+				if ( in_array( rtrim( $rule['url'], '/' ), $existing_hrefs ) ) {
+					continue;
+				}
+
 				// Check global url limits
 				if ( $global_url_max > 0 ) {
 					$url_count = isset($this->url_links_count[$rule['url']]) ? $this->url_links_count[$rule['url']] : 0;

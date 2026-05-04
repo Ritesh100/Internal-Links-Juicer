@@ -4,7 +4,7 @@
  * Plugin URI:        https://outpace.com
  * Description:       Automatically insert internal links into post/page content based on keyword-to-URL rules defined in the admin.
  * Version:           1.0.0
- * Author:            Ritesh Thapa
+ * Author:            Ritesh OutpaceSeo
  * Author URI:        https://github.com/Ritesh100/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
