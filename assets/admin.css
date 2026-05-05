@@ -1,28 +1,123 @@
-/* Internal Link Manager Admin Styles */
+/* admin.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-.oilm-status-active {
-	color: #46b450;
-	font-weight: 600;
+.oilm-modern-wrap {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    max-width: 1200px;
+    margin: 20px auto;
 }
 
-.oilm-status-inactive {
-	color: #dc3232;
-	font-weight: 600;
+.oilm-modern-wrap h1 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: #1d2327;
+    margin-bottom: 20px;
 }
 
-table.wp-list-table th.column-stats {
-	width: 15%;
+.oilm-modern-wrap .nav-tab-wrapper {
+    border-bottom: 2px solid #e2e8f0;
+    margin-bottom: 24px;
+    padding-top: 10px;
 }
 
-table.wp-list-table th.column-is_active {
-	width: 10%;
+.oilm-modern-wrap .nav-tab {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 10px 20px;
+    margin-right: 8px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #64748b;
+    transition: all 0.2s ease;
 }
 
-table.wp-list-table th.column-priority {
-	width: 10%;
+.oilm-modern-wrap .nav-tab:hover {
+    background: rgba(0,0,0,0.02);
+    color: #334155;
 }
 
-.form-table fieldset label {
-	margin-bottom: 5px;
-	display: inline-block;
+.oilm-modern-wrap .nav-tab-active {
+    border-bottom: 2px solid #3b82f6;
+    color: #2563eb;
+    background: transparent;
+}
+
+.oilm-modern-wrap .wp-list-table {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    overflow: hidden;
+}
+
+.oilm-modern-wrap .wp-list-table th {
+    background-color: #f8fafc;
+    font-weight: 600;
+    color: #475569;
+    text-transform: uppercase;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    padding: 15px;
+}
+
+.oilm-modern-wrap .wp-list-table td {
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.oilm-modern-wrap .button-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    padding: 6px 16px;
+    font-weight: 500;
+    text-shadow: none;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+    transition: all 0.2s ease;
+}
+
+.oilm-modern-wrap .button-primary:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    transform: translateY(-1px);
+}
+
+.oilm-modern-wrap .form-table th {
+    font-weight: 500;
+    color: #334155;
+}
+
+.oilm-modern-wrap input[type="text"],
+.oilm-modern-wrap input[type="number"],
+.oilm-modern-wrap select {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 12px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    transition: border-color 0.2s;
+}
+
+.oilm-modern-wrap input[type="text"]:focus,
+.oilm-modern-wrap input[type="number"]:focus,
+.oilm-modern-wrap select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* Select2 Modernization */
+.select2-container--default .select2-selection--multiple {
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    min-height: 38px !important;
+}
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 4px !important;
+    padding: 2px 8px !important;
+    margin-top: 6px !important;
+    color: #334155 !important;
 }
