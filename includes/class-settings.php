@@ -106,10 +106,10 @@ class OILM_Settings {
 
 		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'general';
 		$tabs = array(
-			'general'    => __( 'General', 'internal-link-manager' ),
-			'targeting'  => __( 'Targeting', 'internal-link-manager' ),
-			'exclusions' => __( 'Exclusions', 'internal-link-manager' ),
-			'advanced'   => __( 'Advanced', 'internal-link-manager' ),
+			'general'    => __( 'General', 'op-internal-link-manager' ),
+			'targeting'  => __( 'Targeting', 'op-internal-link-manager' ),
+			'exclusions' => __( 'Exclusions', 'op-internal-link-manager' ),
+			'advanced'   => __( 'Advanced', 'op-internal-link-manager' ),
 		);
 
 		if ( ! isset( $tabs[ $active_tab ] ) ) {
@@ -119,9 +119,9 @@ class OILM_Settings {
 		<div class="wrap oilm-modern-wrap oilm-settings-page">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			
-			<nav class="nav-tab-wrapper oilm-settings-tabs" aria-label="<?php esc_attr_e( 'Settings sections', 'internal-link-manager' ); ?>">
+			<nav class="nav-tab-wrapper oilm-settings-tabs" aria-label="<?php esc_attr_e( 'Settings sections', 'op-internal-link-manager' ); ?>">
 				<?php foreach ( $tabs as $tab => $label ) : ?>
-					<a href="<?php echo esc_url( admin_url( 'admin.php?page=internal-link-manager-settings&tab=' . $tab ) ); ?>" class="nav-tab <?php echo $active_tab === $tab ? 'nav-tab-active' : ''; ?>" <?php echo $active_tab === $tab ? 'aria-current="page"' : ''; ?>>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=op-internal-link-manager-settings&tab=' . $tab ) ); ?>" class="nav-tab <?php echo $active_tab === $tab ? 'nav-tab-active' : ''; ?>" <?php echo $active_tab === $tab ? 'aria-current="page"' : ''; ?>>
 						<?php echo esc_html( $label ); ?>
 					</a>
 				<?php endforeach; ?>
