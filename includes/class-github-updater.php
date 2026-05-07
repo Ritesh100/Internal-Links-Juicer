@@ -36,8 +36,8 @@ class OILM_GitHub_Updater {
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
 		add_filter( 'site_transient_update_plugins', array( $this, 'remove_stale_update_notice' ) );
 		add_filter( 'plugins_api', array( $this, 'plugin_information' ), 20, 3 );
+		add_filter( 'upgrader_pre_download', array( $this, 'download_private_package' ), 10, 4 );
 		add_filter( 'upgrader_source_selection', array( $this, 'rename_github_source' ), 10, 4 );
-		add_filter( 'http_request_args', array( $this, 'add_auth_header' ), 10, 2 );
 	}
 
 	public function check_for_update( $transient ) {
@@ -101,43 +101,59 @@ class OILM_GitHub_Updater {
 			return $source;
 		}
 
-		global $wp_filesystem;
-
 		$target = trailingslashit( $remote_source ) . $this->plugin_slug;
 
 		if ( trailingslashit( $source ) === trailingslashit( $target ) ) {
 			return $source;
 		}
 
-		if ( $wp_filesystem->exists( $target ) ) {
-			$wp_filesystem->delete( $target, true );
+		if ( is_dir( $target ) ) {
+			return $source;
 		}
 
-		if ( $wp_filesystem->move( $source, $target ) ) {
-			return $target;
+		if ( ! rename( $source, $target ) ) {
+			return $source;
 		}
 
-		return $source;
+		return trailingslashit( $target );
 	}
 
-	public function add_auth_header( $args, $url ) {
-		if ( false === strpos( $url, $this->api_url ) ) {
-			return $args;
+	public function download_private_package( $reply, $package, $upgrader, $hook_extra ) {
+		if ( ! empty( $reply ) || empty( $hook_extra['plugin'] ) || $hook_extra['plugin'] !== $this->plugin_basename ) {
+			return $reply;
 		}
 
-		$token = $this->github_token();
-
-		if ( ! $token ) {
-			return $args;
+		if ( $package !== $this->zip_url() || ! $this->github_token() ) {
+			return $reply;
 		}
 
-		if ( empty( $args['headers'] ) || ! is_array( $args['headers'] ) ) {
-			$args['headers'] = array();
+		$download_file = wp_tempnam( $package );
+
+		if ( ! $download_file ) {
+			return new WP_Error( 'oilm_no_temp_file', __( 'Could not create a temporary file for the GitHub update.', 'op-internal-link-manager' ) );
 		}
 
-		$args['headers']['Authorization'] = 'Bearer ' . $token;
+		$response = wp_remote_get(
+			$package,
+			array(
+				'timeout'  => 300,
+				'stream'   => true,
+				'filename' => $download_file,
+				'headers'  => $this->github_headers( 'application/vnd.github+json' ),
+			)
+		);
 
-		return $args;
+		if ( is_wp_error( $response ) ) {
+			@unlink( $download_file );
+			return $response;
+		}
+
+		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			@unlink( $download_file );
+			return new WP_Error( 'oilm_github_download_failed', __( 'GitHub returned an error while downloading the plugin update.', 'op-internal-link-manager' ) );
+		}
+
+		return $download_file;
 	}
 
 	private function get_remote_plugin_data( $force_refresh = false ) {

@@ -10,6 +10,18 @@ class OILM_Admin {
 		$this->version = $version;
 	}
 
+	public function plugin_action_links( $links ) {
+		$settings_link = sprintf(
+			'<a href="%s">%s</a>',
+			esc_url( admin_url( 'admin.php?page=' . $this->plugin_name . '-settings' ) ),
+			esc_html__( 'Settings', 'op-internal-link-manager' )
+		);
+
+		array_unshift( $links, $settings_link );
+
+		return $links;
+	}
+
 	public function enqueue_styles( $hook_suffix ) {
 		if ( strpos( $hook_suffix, 'op-internal-link-manager' ) === false ) {
 			return;

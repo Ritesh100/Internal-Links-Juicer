@@ -41,6 +41,7 @@ class OILM_Plugin {
 		add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_styles' ) );
 		add_action( 'admin_enqueue_scripts', array( $plugin_admin, 'enqueue_scripts' ) );
 		add_action( 'wp_dashboard_setup', array( $plugin_admin, 'register_dashboard_widget' ) );
+		add_filter( 'plugin_action_links_' . OILM_PLUGIN_BASENAME, array( $plugin_admin, 'plugin_action_links' ) );
 
 		$plugin_settings = new OILM_Settings();
 		add_action( 'admin_init', array( $plugin_settings, 'register_settings' ) );
