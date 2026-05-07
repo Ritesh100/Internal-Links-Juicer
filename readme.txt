@@ -4,7 +4,7 @@ Tags: internal links, seo, auto link, internal linking, link building
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,12 @@ No. The plugin parses the content on-the-fly when rendering the page, leaving yo
 Yes, it is designed to be compatible with Elementor widgets and templates.
 
 == Changelog ==
+
+= 1.0.3 =
+* Release: 2026-05-07
+* Fixed settings tab links after the plugin slug rename
+* Updated Targeting, Exclusions, and Advanced tabs to use the registered admin page slug
+* Synced remaining settings tab text domain strings with op-internal-link-manager
 
 = 1.0.2 =
 * Release: 2026-05-07
