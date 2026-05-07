@@ -78,6 +78,28 @@
     vertical-align: middle;
 }
 
+.oilm-modern-wrap .wp-list-table .check-column {
+    padding: 12px 8px;
+    text-align: center;
+    vertical-align: middle;
+    width: 34px;
+}
+
+.oilm-modern-wrap .wp-list-table .check-column input[type="checkbox"] {
+    display: block;
+    margin: 0 auto;
+}
+
+.oilm-modern-wrap .wp-list-table thead th,
+.oilm-modern-wrap .wp-list-table tfoot th {
+    line-height: 1.35;
+}
+
+.oilm-modern-wrap .wp-list-table .no-items td {
+    color: var(--oilm-text-muted);
+    padding: 18px 16px;
+}
+
 .oilm-modern-wrap .button-primary {
     background: var(--oilm-primary);
     border-color: var(--oilm-primary);
@@ -215,7 +237,7 @@
     border: 1px solid #c3c4c7 !important;
     border-radius: 6px !important;
     min-height: 38px !important;
-    padding: 2px 6px !important;
+    padding: 6px 8px 2px !important;
 }
 
 .oilm-modern-wrap .select2-container--default.select2-container--focus .select2-selection--multiple {
@@ -224,12 +246,42 @@
 }
 
 .oilm-modern-wrap .select2-container--default .select2-selection--multiple .select2-selection__choice {
+    align-items: center !important;
     background-color: #eef2f7 !important;
     border: 1px solid #cfd7e2 !important;
     border-radius: 4px !important;
     color: var(--oilm-text) !important;
-    margin-top: 6px !important;
+    display: inline-flex !important;
+    gap: 5px !important;
+    line-height: 1.4 !important;
+    margin: 0 5px 5px 0 !important;
     padding: 3px 8px !important;
+}
+
+.oilm-modern-wrap .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    align-items: center !important;
+    border: 0 !important;
+    color: #646970 !important;
+    display: inline-flex !important;
+    font-size: 14px !important;
+    height: 16px !important;
+    justify-content: center !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    order: -1 !important;
+    padding: 0 !important;
+    position: static !important;
+    width: 12px !important;
+}
+
+.oilm-modern-wrap .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    background: transparent !important;
+    color: #b32d2e !important;
+}
+
+.oilm-modern-wrap .select2-container--default .select2-search--inline .select2-search__field {
+    margin: 0 0 5px !important;
+    min-height: 24px !important;
 }
 
 @media (max-width: 782px) {
