@@ -206,6 +206,10 @@
     padding: 20px 24px 0;
 }
 
+.oilm-rule-form {
+    max-width: 960px;
+}
+
 .oilm-url-field-wrapper {
     max-width: 560px;
 }
@@ -254,6 +258,32 @@
     color: var(--oilm-text) !important;
     margin-top: 6px !important;
     padding: 3px 8px !important;
+}
+
+.oilm-link-result {
+    display: block;
+    padding: 2px 0;
+}
+
+.oilm-link-result-title,
+.oilm-link-result-meta,
+.oilm-link-result-url {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.oilm-link-result-title {
+    color: var(--oilm-text);
+    font-weight: 600;
+}
+
+.oilm-link-result-meta,
+.oilm-link-result-url {
+    color: var(--oilm-text-muted);
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 @media (max-width: 782px) {

@@ -166,67 +166,81 @@ class OILM_Link_Rules {
 
 		?>
 		<div class="wrap oilm-modern-wrap">
-			<h1><?php echo $rule['id'] ? 'Edit Rule' : 'Add New Rule'; ?></h1>
-			<form method="post" action="<?php echo admin_url( 'admin-post.php' ); ?>">
+			<h1><?php echo esc_html( $rule['id'] ? __( 'Edit Rule', 'op-internal-link-manager' ) : __( 'Add New Rule', 'op-internal-link-manager' ) ); ?></h1>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="oilm-settings-card oilm-rule-form">
 				<input type="hidden" name="action" value="oilm_save_rule">
 				<input type="hidden" name="rule_id" value="<?php echo absint( $rule['id'] ); ?>">
 				<?php wp_nonce_field( 'oilm_save_rule_nonce' ); ?>
+				<h2><?php esc_html_e( 'Rule Details', 'op-internal-link-manager' ); ?></h2>
+				<p><?php esc_html_e( 'Choose the keywords to detect and the internal page they should point to.', 'op-internal-link-manager' ); ?></p>
 				
 				<table class="form-table">
 					<tr>
-						<th scope="row"><label for="keywords">Keywords</label></th>
+						<th scope="row"><label for="keywords"><?php esc_html_e( 'Keywords', 'op-internal-link-manager' ); ?></label></th>
 						<td>
 							<textarea name="keywords" id="keywords" rows="3" class="regular-text" required><?php echo esc_textarea( $rule['keywords'] ); ?></textarea>
-							<p class="description">Comma-separated list of keywords to link.</p>
+							<p class="description"><?php esc_html_e( 'Comma-separated list of keywords to link.', 'op-internal-link-manager' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="url">Target URL</label></th>
+						<th scope="row"><label for="oilm-link-search"><?php esc_html_e( 'Internal Link Search', 'op-internal-link-manager' ); ?></label></th>
+						<td>
+							<div class="oilm-url-field-wrapper">
+								<select id="oilm-link-search" class="regular-text">
+									<option></option>
+								</select>
+								<p class="description"><?php esc_html_e( 'Start typing a post, page, or public content title to fill the target URL.', 'op-internal-link-manager' ); ?></p>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="url"><?php esc_html_e( 'Target URL', 'op-internal-link-manager' ); ?></label></th>
 						<td>
 							<input name="url" id="url" type="url" value="<?php echo esc_attr( $rule['url'] ); ?>" class="regular-text" required />
+							<p class="description"><?php esc_html_e( 'You can select internal content above or paste a URL manually.', 'op-internal-link-manager' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="title_attr">Link Title Attribute</label></th>
+						<th scope="row"><label for="title_attr"><?php esc_html_e( 'Link Title Attribute', 'op-internal-link-manager' ); ?></label></th>
 						<td>
 							<input name="title_attr" id="title_attr" type="text" value="<?php echo esc_attr( $rule['title_attr'] ); ?>" class="regular-text" />
 						</td>
 					</tr>
 					<tr>
-						<th scope="row">Settings</th>
+						<th scope="row"><?php esc_html_e( 'Settings', 'op-internal-link-manager' ); ?></th>
 						<td>
 							<fieldset>
-								<label><input type="checkbox" name="open_new_tab" value="1" <?php checked( 1, $rule['open_new_tab'] ); ?>> Open in new tab (target="_blank")</label><br>
-								<label><input type="checkbox" name="is_nofollow" value="1" <?php checked( 1, $rule['is_nofollow'] ); ?>> Add nofollow (rel="nofollow")</label><br>
-								<label><input type="checkbox" name="is_sponsored" value="1" <?php checked( 1, $rule['is_sponsored'] ); ?>> Add sponsored (rel="sponsored")</label><br>
-								<label><input type="checkbox" name="is_exact_match" value="1" <?php checked( 1, $rule['is_exact_match'] ); ?>> Exact match only (case sensitive, whole word)</label><br>
-								<label><input type="checkbox" name="is_active" value="1" <?php checked( 1, $rule['is_active'] ); ?>> Enable this rule</label>
+								<label><input type="checkbox" name="open_new_tab" value="1" <?php checked( 1, $rule['open_new_tab'] ); ?>> <?php esc_html_e( 'Open in new tab (target="_blank")', 'op-internal-link-manager' ); ?></label><br>
+								<label><input type="checkbox" name="is_nofollow" value="1" <?php checked( 1, $rule['is_nofollow'] ); ?>> <?php esc_html_e( 'Add nofollow (rel="nofollow")', 'op-internal-link-manager' ); ?></label><br>
+								<label><input type="checkbox" name="is_sponsored" value="1" <?php checked( 1, $rule['is_sponsored'] ); ?>> <?php esc_html_e( 'Add sponsored (rel="sponsored")', 'op-internal-link-manager' ); ?></label><br>
+								<label><input type="checkbox" name="is_exact_match" value="1" <?php checked( 1, $rule['is_exact_match'] ); ?>> <?php esc_html_e( 'Exact match only (case sensitive, whole word)', 'op-internal-link-manager' ); ?></label><br>
+								<label><input type="checkbox" name="is_active" value="1" <?php checked( 1, $rule['is_active'] ); ?>> <?php esc_html_e( 'Enable this rule', 'op-internal-link-manager' ); ?></label>
 							</fieldset>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="max_links_per_page">Max links per page</label></th>
+						<th scope="row"><label for="max_links_per_page"><?php esc_html_e( 'Max links per page', 'op-internal-link-manager' ); ?></label></th>
 						<td>
 							<input name="max_links_per_page" id="max_links_per_page" type="number" value="<?php echo esc_attr( $rule['max_links_per_page'] ); ?>" min="0" />
-							<p class="description">0 for unlimited.</p>
+							<p class="description"><?php esc_html_e( '0 for unlimited.', 'op-internal-link-manager' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="max_uses_per_keyword">Max uses per keyword</label></th>
+						<th scope="row"><label for="max_uses_per_keyword"><?php esc_html_e( 'Max uses per keyword', 'op-internal-link-manager' ); ?></label></th>
 						<td>
 							<input name="max_uses_per_keyword" id="max_uses_per_keyword" type="number" value="<?php echo esc_attr( $rule['max_uses_per_keyword'] ); ?>" min="0" />
-							<p class="description">0 for unlimited.</p>
+							<p class="description"><?php esc_html_e( '0 for unlimited.', 'op-internal-link-manager' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><label for="priority">Priority</label></th>
+						<th scope="row"><label for="priority"><?php esc_html_e( 'Priority', 'op-internal-link-manager' ); ?></label></th>
 						<td>
 							<input name="priority" id="priority" type="number" value="<?php echo esc_attr( $rule['priority'] ); ?>" min="0" />
-							<p class="description">Lower number runs first.</p>
+							<p class="description"><?php esc_html_e( 'Lower number runs first.', 'op-internal-link-manager' ); ?></p>
 						</td>
 					</tr>
 				</table>
-				<?php submit_button( 'Save Rule' ); ?>
+				<?php submit_button( __( 'Save Rule', 'op-internal-link-manager' ) ); ?>
 			</form>
 		</div>
 		<?php
@@ -286,5 +300,60 @@ class OILM_Link_Rules {
 		
 		wp_redirect( admin_url( 'admin.php?page=op-internal-link-manager&message=deleted' ) );
 		exit;
+	}
+
+	public function search_links() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array(), 403 );
+		}
+
+		check_ajax_referer( 'oilm_admin_nonce', 'nonce' );
+
+		$query = isset( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+
+		if ( strlen( $query ) < 2 ) {
+			wp_send_json_success( array() );
+		}
+
+		if ( ! function_exists( 'wp_link_query' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/internal-linking.php';
+		}
+
+		$results = wp_link_query(
+			array(
+				's'         => $query,
+				'post_type' => $this->get_searchable_post_types(),
+			)
+		);
+
+		$links = array();
+
+		foreach ( $results as $result ) {
+			if ( empty( $result['permalink'] ) ) {
+				continue;
+			}
+
+			$links[] = array(
+				'id'    => esc_url_raw( $result['permalink'] ),
+				'text'  => html_entity_decode( $result['title'], ENT_QUOTES, get_bloginfo( 'charset' ) ),
+				'url'   => esc_url_raw( $result['permalink'] ),
+				'info'  => isset( $result['info'] ) ? sanitize_text_field( $result['info'] ) : '',
+			);
+		}
+
+		wp_send_json_success( $links );
+	}
+
+	private function get_searchable_post_types() {
+		$post_types = get_post_types(
+			array(
+				'public' => true,
+			),
+			'names'
+		);
+
+		unset( $post_types['attachment'] );
+
+		return array_values( $post_types );
 	}
 }

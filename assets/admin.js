@@ -10,7 +10,8 @@ jQuery(document).ready(function($) {
         $('#oilm-link-search').select2({
             width: '100%',
             placeholder: 'Search for internal content...',
-            minimumInputLength: 3,
+            allowClear: true,
+            minimumInputLength: 2,
             ajax: {
                 url: oilm_admin.ajax_url,
                 dataType: 'json',
@@ -33,6 +34,27 @@ jQuery(document).ready(function($) {
                     };
                 },
                 cache: true
+            },
+            templateResult: function(item) {
+                if (item.loading) {
+                    return item.text;
+                }
+
+                var $result = $('<span class="oilm-link-result"></span>');
+                $('<span class="oilm-link-result-title"></span>').text(item.text).appendTo($result);
+
+                if (item.info) {
+                    $('<span class="oilm-link-result-meta"></span>').text(item.info).appendTo($result);
+                }
+
+                if (item.url) {
+                    $('<span class="oilm-link-result-url"></span>').text(item.url).appendTo($result);
+                }
+
+                return $result;
+            },
+            templateSelection: function(item) {
+                return item.text || item.id || '';
             }
         }).on('select2:select', function (e) {
             var data = e.params.data;

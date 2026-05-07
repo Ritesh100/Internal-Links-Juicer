@@ -36,6 +36,14 @@ class OILM_Admin {
 		}
 		wp_enqueue_script( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0', true );
 		wp_enqueue_script( $this->plugin_name, OILM_PLUGIN_URL . 'assets/admin.js', array( 'jquery', 'select2' ), $this->version, true );
+		wp_localize_script(
+			$this->plugin_name,
+			'oilm_admin',
+			array(
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'nonce'    => wp_create_nonce( 'oilm_admin_nonce' ),
+			)
+		);
 	}
 
 	public function add_plugin_admin_menu() {

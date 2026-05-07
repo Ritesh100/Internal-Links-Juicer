@@ -50,6 +50,7 @@ class OILM_Plugin {
 			$plugin_rules = new OILM_Link_Rules();
 			add_action( 'admin_post_oilm_save_rule', array( $plugin_rules, 'save_rule' ) );
 			add_action( 'admin_post_oilm_delete_rule', array( $plugin_rules, 'delete_rule' ) );
+			add_action( 'wp_ajax_oilm_search_links', array( $plugin_rules, 'search_links' ) );
 
 			$github_updater = new OILM_GitHub_Updater( OILM_PLUGIN_DIR . 'op-internal-link-manager.php', $this->get_version(), OILM_GITHUB_OWNER, OILM_GITHUB_REPO, OILM_GITHUB_BRANCH );
 			$github_updater->init();
