@@ -12,7 +12,7 @@ class OILM_Plugin {
 		} else {
 			$this->version = '1.0.0';
 		}
-		$this->plugin_name = 'op-internal-link-juicer';
+		$this->plugin_name = 'op-internal-link-manager';
 
 		$this->load_dependencies();
 		$this->define_admin_hooks();

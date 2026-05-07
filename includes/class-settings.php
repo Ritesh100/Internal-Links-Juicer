@@ -6,39 +6,39 @@ class OILM_Settings {
 		register_setting( 'oilm_settings_group', 'oilm_settings' );
 
 		// General Tab
-		add_settings_section( 'oilm_general_settings', __( 'General Settings', 'op-internal-link-juicer' ), array( $this, 'general_settings_cb' ), 'oilm_settings_general' );
-		add_settings_field( 'enable_plugin', __( 'Enable Plugin', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'enable_plugin' ) );
-		add_settings_field( 'global_max_links', __( 'Global Max Links per Page', 'op-internal-link-juicer' ), array( $this, 'render_number' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'global_max_links', 'desc' => '0 for unlimited' ) );
-		add_settings_field( 'global_max_url_links', __( 'Global Max Links per Target URL per Page', 'op-internal-link-juicer' ), array( $this, 'render_number' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'global_max_url_links', 'desc' => '0 for unlimited' ) );
-		add_settings_field( 'default_new_tab', __( 'Open links in new tab default', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'default_new_tab' ) );
-		add_settings_field( 'default_nofollow', __( 'Add nofollow default', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'default_nofollow' ) );
+		add_settings_section( 'oilm_general_settings', __( 'General Settings', 'op-internal-link-manager' ), array( $this, 'general_settings_cb' ), 'oilm_settings_general' );
+		add_settings_field( 'enable_plugin', __( 'Enable Plugin', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'enable_plugin' ) );
+		add_settings_field( 'global_max_links', __( 'Global Max Links per Page', 'op-internal-link-manager' ), array( $this, 'render_number' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'global_max_links', 'desc' => '0 for unlimited' ) );
+		add_settings_field( 'global_max_url_links', __( 'Global Max Links per Target URL per Page', 'op-internal-link-manager' ), array( $this, 'render_number' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'global_max_url_links', 'desc' => '0 for unlimited' ) );
+		add_settings_field( 'default_new_tab', __( 'Open links in new tab default', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'default_new_tab' ) );
+		add_settings_field( 'default_nofollow', __( 'Add nofollow default', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_general', 'oilm_general_settings', array( 'id' => 'default_nofollow' ) );
 
 		// Targeting Tab
-		add_settings_section( 'oilm_targeting_settings', __( 'Content Targeting', 'op-internal-link-juicer' ), array( $this, 'targeting_settings_cb' ), 'oilm_settings_targeting' );
-		add_settings_field( 'enabled_post_types', __( 'Enabled Post Types', 'op-internal-link-juicer' ), array( $this, 'render_post_types' ), 'oilm_settings_targeting', 'oilm_targeting_settings' );
-		add_settings_field( 'process_excerpts', __( 'Process Excerpts', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_targeting', 'oilm_targeting_settings', array( 'id' => 'process_excerpts', 'desc' => 'Add links inside post excerpts.' ) );
-		add_settings_field( 'process_comments', __( 'Process Comments', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_targeting', 'oilm_targeting_settings', array( 'id' => 'process_comments', 'desc' => 'Add links inside user comments.' ) );
-		add_settings_field( 'enable_elementor', __( 'Enable Elementor Compatibility', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_targeting', 'oilm_targeting_settings', array( 'id' => 'enable_elementor' ) );
+		add_settings_section( 'oilm_targeting_settings', __( 'Content Targeting', 'op-internal-link-manager' ), array( $this, 'targeting_settings_cb' ), 'oilm_settings_targeting' );
+		add_settings_field( 'enabled_post_types', __( 'Enabled Post Types', 'op-internal-link-manager' ), array( $this, 'render_post_types' ), 'oilm_settings_targeting', 'oilm_targeting_settings' );
+		add_settings_field( 'process_excerpts', __( 'Process Excerpts', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_targeting', 'oilm_targeting_settings', array( 'id' => 'process_excerpts', 'desc' => 'Add links inside post excerpts.' ) );
+		add_settings_field( 'process_comments', __( 'Process Comments', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_targeting', 'oilm_targeting_settings', array( 'id' => 'process_comments', 'desc' => 'Add links inside user comments.' ) );
+		add_settings_field( 'enable_elementor', __( 'Enable Elementor Compatibility', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_targeting', 'oilm_targeting_settings', array( 'id' => 'enable_elementor' ) );
 
 		// Exclusions Tab
-		add_settings_section( 'oilm_exclusions_settings', __( 'Exclusions', 'op-internal-link-juicer' ), array( $this, 'exclusions_settings_cb' ), 'oilm_settings_exclusions' );
-		add_settings_field( 'exclude_post_ids', __( 'Exclude Post/Page IDs', 'op-internal-link-juicer' ), array( $this, 'render_text' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_post_ids', 'desc' => 'Comma-separated list of Post IDs to never process.' ) );
-		add_settings_field( 'exclude_headings', __( 'Exclude Headings', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_headings', 'desc' => 'Do not add links inside H1-H6 tags.' ) );
-		add_settings_field( 'exclude_existing_links', __( 'Exclude Existing Links', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_existing_links', 'desc' => 'Do not add links inside existing anchor tags.' ) );
-		add_settings_field( 'exclude_elements', __( 'Exclude Specific HTML Elements', 'op-internal-link-juicer' ), array( $this, 'render_exclude_elements' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings' );
+		add_settings_section( 'oilm_exclusions_settings', __( 'Exclusions', 'op-internal-link-manager' ), array( $this, 'exclusions_settings_cb' ), 'oilm_settings_exclusions' );
+		add_settings_field( 'exclude_post_ids', __( 'Exclude Post/Page IDs', 'op-internal-link-manager' ), array( $this, 'render_text' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_post_ids', 'desc' => 'Comma-separated list of Post IDs to never process.' ) );
+		add_settings_field( 'exclude_headings', __( 'Exclude Headings', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_headings', 'desc' => 'Do not add links inside H1-H6 tags.' ) );
+		add_settings_field( 'exclude_existing_links', __( 'Exclude Existing Links', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_existing_links', 'desc' => 'Do not add links inside existing anchor tags.' ) );
+		add_settings_field( 'exclude_elements', __( 'Exclude Specific HTML Elements', 'op-internal-link-manager' ), array( $this, 'render_exclude_elements' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings' );
 
 		// Advanced Tab
-		add_settings_section( 'oilm_advanced_settings', __( 'Advanced Configuration', 'op-internal-link-juicer' ), array( $this, 'advanced_settings_cb' ), 'oilm_settings_advanced' );
-		add_settings_field( 'enable_pluralization', __( 'Enable Pluralization', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'enable_pluralization', 'desc' => 'Automatically match basic plural forms (e.g., adding "s" or "es") of keywords.' ) );
-		add_settings_field( 'first_occurrence_only', __( 'First Occurrence Only', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'first_occurrence_only', 'desc' => 'Only link the very first matched keyword on the entire page, then stop processing.' ) );
-		add_settings_field( 'debug_mode', __( 'Debug Mode', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'debug_mode' ) );
-		add_settings_field( 'remove_data_on_uninstall', __( 'Remove Data on Uninstall', 'op-internal-link-juicer' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'remove_data_on_uninstall', 'desc' => 'Delete all rules and settings if the plugin is uninstalled.' ) );
+		add_settings_section( 'oilm_advanced_settings', __( 'Advanced Configuration', 'op-internal-link-manager' ), array( $this, 'advanced_settings_cb' ), 'oilm_settings_advanced' );
+		add_settings_field( 'enable_pluralization', __( 'Enable Pluralization', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'enable_pluralization', 'desc' => 'Automatically match basic plural forms (e.g., adding "s" or "es") of keywords.' ) );
+		add_settings_field( 'first_occurrence_only', __( 'First Occurrence Only', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'first_occurrence_only', 'desc' => 'Only link the very first matched keyword on the entire page, then stop processing.' ) );
+		add_settings_field( 'debug_mode', __( 'Debug Mode', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'debug_mode' ) );
+		add_settings_field( 'remove_data_on_uninstall', __( 'Remove Data on Uninstall', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_advanced', 'oilm_advanced_settings', array( 'id' => 'remove_data_on_uninstall', 'desc' => 'Delete all rules and settings if the plugin is uninstalled.' ) );
 	}
 
-	public function general_settings_cb() { echo '<p>' . __( 'Configure global defaults and limits.', 'op-internal-link-juicer' ) . '</p>'; }
-	public function targeting_settings_cb() { echo '<p>' . __( 'Configure where links should be inserted.', 'op-internal-link-juicer' ) . '</p>'; }
-	public function exclusions_settings_cb() { echo '<p>' . __( 'Configure where links should NOT be inserted.', 'op-internal-link-juicer' ) . '</p>'; }
-	public function advanced_settings_cb() { echo '<p>' . __( 'Advanced matching and system configurations.', 'op-internal-link-juicer' ) . '</p>'; }
+	public function general_settings_cb() { echo '<p>' . __( 'Configure global defaults and limits.', 'op-internal-link-manager' ) . '</p>'; }
+	public function targeting_settings_cb() { echo '<p>' . __( 'Configure where links should be inserted.', 'op-internal-link-manager' ) . '</p>'; }
+	public function exclusions_settings_cb() { echo '<p>' . __( 'Configure where links should NOT be inserted.', 'op-internal-link-manager' ) . '</p>'; }
+	public function advanced_settings_cb() { echo '<p>' . __( 'Advanced matching and system configurations.', 'op-internal-link-manager' ) . '</p>'; }
 
 	public function render_checkbox( $args ) {
 		$options = get_option( 'oilm_settings' );

@@ -11,7 +11,7 @@ class OILM_Admin {
 	}
 
 	public function enqueue_styles( $hook_suffix ) {
-		if ( strpos( $hook_suffix, 'op-internal-link-juicer' ) === false ) {
+		if ( strpos( $hook_suffix, 'op-internal-link-manager' ) === false ) {
 			return;
 		}
 		wp_enqueue_style( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css', array(), '4.1.0' );
@@ -19,7 +19,7 @@ class OILM_Admin {
 	}
 
 	public function enqueue_scripts( $hook_suffix ) {
-		if ( strpos( $hook_suffix, 'op-internal-link-juicer' ) === false ) {
+		if ( strpos( $hook_suffix, 'op-internal-link-manager' ) === false ) {
 			return;
 		}
 		wp_enqueue_script( 'select2', 'https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js', array( 'jquery' ), '4.1.0', true );
@@ -29,8 +29,8 @@ class OILM_Admin {
 	public function add_plugin_admin_menu() {
 		// Main Menu Page
 		add_menu_page(
-			__( 'Internal Links', 'op-internal-link-juicer' ),
-			__( 'Internal Links', 'op-internal-link-juicer' ),
+			__( 'Internal Links', 'op-internal-link-manager' ),
+			__( 'Internal Links', 'op-internal-link-manager' ),
 			'manage_options',
 			$this->plugin_name,
 			array( $this, 'display_rules_page' ),
@@ -41,8 +41,8 @@ class OILM_Admin {
 		// Submenus
 		add_submenu_page(
 			$this->plugin_name,
-			__( 'Link Rules', 'op-internal-link-juicer' ),
-			__( 'Link Rules', 'op-internal-link-juicer' ),
+			__( 'Link Rules', 'op-internal-link-manager' ),
+			__( 'Link Rules', 'op-internal-link-manager' ),
 			'manage_options',
 			$this->plugin_name,
 			array( $this, 'display_rules_page' )
@@ -50,8 +50,8 @@ class OILM_Admin {
 
 		add_submenu_page(
 			$this->plugin_name,
-			__( 'Settings', 'op-internal-link-juicer' ),
-			__( 'Settings', 'op-internal-link-juicer' ),
+			__( 'Settings', 'op-internal-link-manager' ),
+			__( 'Settings', 'op-internal-link-manager' ),
 			'manage_options',
 			$this->plugin_name . '-settings',
 			array( $this, 'display_settings_page' )
@@ -59,8 +59,8 @@ class OILM_Admin {
 
 		add_submenu_page(
 			$this->plugin_name,
-			__( 'Reports', 'op-internal-link-juicer' ),
-			__( 'Reports', 'op-internal-link-juicer' ),
+			__( 'Reports', 'op-internal-link-manager' ),
+			__( 'Reports', 'op-internal-link-manager' ),
 			'manage_options',
 			$this->plugin_name . '-reports',
 			array( $this, 'display_reports_page' )
@@ -93,7 +93,7 @@ class OILM_Admin {
 		echo '<li><strong>Active Rules:</strong> ' . absint( $active_rules ) . '</li>';
 		echo '<li><strong>Total Links Inserted:</strong> ' . absint( $total_insertions ) . '</li>';
 		echo '</ul>';
-		echo '<p><a href="' . admin_url('admin.php?page=op-internal-link-juicer') . '" class="button button-primary">Manage Rules</a></p>';
+		echo '<p><a href="' . admin_url('admin.php?page=op-internal-link-manager') . '" class="button button-primary">Manage Rules</a></p>';
 	}
 
 	public function display_rules_page() {
