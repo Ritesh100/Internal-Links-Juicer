@@ -4,7 +4,7 @@ Tags: internal links, seo, auto link, internal linking, link building
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.0.5
+Stable tag: 1.0.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,11 @@ No. The plugin parses the content on-the-fly when rendering the page, leaving yo
 Yes, it is designed to be compatible with Elementor widgets and templates.
 
 == Changelog ==
+
+= 1.0.6 =
+* Release: 2026-05-07
+* Fixed settings saves so each tab preserves existing options from other tabs
+* Improved checkbox and multi-select saving behavior on tabbed settings pages
 
 = 1.0.5 =
 * Release: 2026-05-07

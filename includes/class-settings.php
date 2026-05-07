@@ -38,16 +38,118 @@ class OILM_Settings {
 
 	public function sanitize_settings( $input ) {
 		if ( ! is_array( $input ) ) {
-			return array();
+			$input = array();
 		}
 
-		if ( isset( $input['link_css_class'] ) ) {
-			$classes = preg_split( '/\s+/', trim( $input['link_css_class'] ) );
-			$classes = array_filter( array_map( 'sanitize_html_class', $classes ) );
-			$input['link_css_class'] = implode( ' ', $classes );
+		$active_tab = isset( $_POST['oilm_active_tab'] ) ? sanitize_key( wp_unslash( $_POST['oilm_active_tab'] ) ) : 'general';
+		$settings = wp_parse_args( get_option( 'oilm_settings', array() ), $this->get_default_settings() );
+		$tab_fields = $this->get_tab_fields();
+
+		if ( isset( $tab_fields[ $active_tab ] ) ) {
+			foreach ( $tab_fields[ $active_tab ] as $field ) {
+				if ( in_array( $field, $this->get_checkbox_fields(), true ) ) {
+					$settings[ $field ] = 0;
+				}
+
+				if ( in_array( $field, array( 'enabled_post_types', 'exclude_elements' ), true ) ) {
+					$settings[ $field ] = array();
+				}
+			}
 		}
 
-		return $input;
+		foreach ( $input as $key => $value ) {
+			switch ( $key ) {
+				case 'global_max_links':
+				case 'global_max_url_links':
+					$settings[ $key ] = absint( $value );
+					break;
+
+				case 'enable_plugin':
+				case 'default_new_tab':
+				case 'default_nofollow':
+				case 'process_excerpts':
+				case 'process_comments':
+				case 'enable_elementor':
+				case 'exclude_headings':
+				case 'exclude_existing_links':
+				case 'enable_pluralization':
+				case 'first_occurrence_only':
+				case 'debug_mode':
+				case 'remove_data_on_uninstall':
+					$settings[ $key ] = $value ? 1 : 0;
+					break;
+
+				case 'link_css_class':
+					$classes = preg_split( '/\s+/', trim( wp_unslash( $value ) ) );
+					$classes = array_filter( array_map( 'sanitize_html_class', $classes ) );
+					$settings[ $key ] = implode( ' ', $classes );
+					break;
+
+				case 'enabled_post_types':
+				case 'exclude_elements':
+					$settings[ $key ] = is_array( $value ) ? array_map( 'sanitize_key', wp_unslash( $value ) ) : array();
+					break;
+
+				case 'exclude_post_ids':
+					$settings[ $key ] = sanitize_text_field( wp_unslash( $value ) );
+					break;
+			}
+		}
+
+		if ( '' === $settings['link_css_class'] ) {
+			$settings['link_css_class'] = 'op-internal-link';
+		}
+
+		return $settings;
+	}
+
+	private function get_default_settings() {
+		return array(
+			'global_max_links' => 0,
+			'global_max_url_links' => 0,
+			'link_css_class' => 'op-internal-link',
+			'enable_plugin' => 1,
+			'enabled_post_types' => array( 'post', 'page' ),
+			'enable_elementor' => 1,
+			'exclude_headings' => 1,
+			'exclude_existing_links' => 1,
+			'default_new_tab' => 0,
+			'default_nofollow' => 0,
+			'debug_mode' => 0,
+			'remove_data_on_uninstall' => 0,
+			'process_excerpts' => 0,
+			'process_comments' => 0,
+			'exclude_post_ids' => '',
+			'exclude_elements' => array(),
+			'enable_pluralization' => 0,
+			'first_occurrence_only' => 0,
+		);
+	}
+
+	private function get_tab_fields() {
+		return array(
+			'general' => array( 'enable_plugin', 'global_max_links', 'global_max_url_links', 'link_css_class', 'default_new_tab', 'default_nofollow' ),
+			'targeting' => array( 'enabled_post_types', 'process_excerpts', 'process_comments', 'enable_elementor' ),
+			'exclusions' => array( 'exclude_post_ids', 'exclude_headings', 'exclude_existing_links', 'exclude_elements' ),
+			'advanced' => array( 'enable_pluralization', 'first_occurrence_only', 'debug_mode', 'remove_data_on_uninstall' ),
+		);
+	}
+
+	private function get_checkbox_fields() {
+		return array(
+			'enable_plugin',
+			'default_new_tab',
+			'default_nofollow',
+			'process_excerpts',
+			'process_comments',
+			'enable_elementor',
+			'exclude_headings',
+			'exclude_existing_links',
+			'enable_pluralization',
+			'first_occurrence_only',
+			'debug_mode',
+			'remove_data_on_uninstall',
+		);
 	}
 
 	public function general_settings_cb() { echo '<p>' . __( 'Configure global defaults and limits.', 'op-internal-link-manager' ) . '</p>'; }
@@ -145,6 +247,7 @@ class OILM_Settings {
 			<form action="options.php" method="post" class="oilm-settings-card">
 				<?php
 				settings_fields( 'oilm_settings_group' );
+				echo '<input type="hidden" name="oilm_active_tab" value="' . esc_attr( $active_tab ) . '" />';
 				do_settings_sections( 'oilm_settings_' . $active_tab );
 				submit_button();
 				?>
