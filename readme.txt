@@ -4,7 +4,7 @@ Tags: internal links, seo, auto link, internal linking, link building
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.0.8
+Stable tag: 1.0.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -45,15 +45,14 @@ Yes, it is designed to be compatible with Elementor widgets and templates.
 
 == Changelog ==
 
-= 1.0.8 =
-* Release: 2026-05-07
-* Improved admin table checkbox column spacing
-* Fixed Select2 selected item chip alignment in settings fields
-
-= 1.0.7 =
-* Release: 2026-05-07
-* Matched the GitHub updater flow used by Advanced HTML Sitemap
-* Removed dependency on GitHub tags or releases for dashboard update detection
+= 1.0.9 =
+* Release: 2026-05-08
+* Added Select2-powered internal link search for rule URLs
+* Added Custom CSS Class option per link rule
+* Added Max Links Per Post limit per rule
+* Modernized the Add/Edit Rule admin UI to match settings
+* Improved database migration support for plugin updates
+* Optimized GitHub auto-updater logic and added Primary Branch header
 
 = 1.0.6 =
 * Release: 2026-05-07
