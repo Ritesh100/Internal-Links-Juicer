@@ -104,19 +104,30 @@ class OILM_Settings {
 			return;
 		}
 
-		$active_tab = isset( $_GET['tab'] ) ? $_GET['tab'] : 'general';
+		$active_tab = isset( $_GET['tab'] ) ? sanitize_key( $_GET['tab'] ) : 'general';
+		$tabs = array(
+			'general'    => __( 'General', 'internal-link-manager' ),
+			'targeting'  => __( 'Targeting', 'internal-link-manager' ),
+			'exclusions' => __( 'Exclusions', 'internal-link-manager' ),
+			'advanced'   => __( 'Advanced', 'internal-link-manager' ),
+		);
+
+		if ( ! isset( $tabs[ $active_tab ] ) ) {
+			$active_tab = 'general';
+		}
 		?>
-		<div class="wrap">
+		<div class="wrap oilm-modern-wrap oilm-settings-page">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			
-			<h2 class="nav-tab-wrapper">
-				<a href="?page=internal-link-manager-settings&tab=general" class="nav-tab <?php echo $active_tab == 'general' ? 'nav-tab-active' : ''; ?>">General</a>
-				<a href="?page=internal-link-manager-settings&tab=targeting" class="nav-tab <?php echo $active_tab == 'targeting' ? 'nav-tab-active' : ''; ?>">Targeting</a>
-				<a href="?page=internal-link-manager-settings&tab=exclusions" class="nav-tab <?php echo $active_tab == 'exclusions' ? 'nav-tab-active' : ''; ?>">Exclusions</a>
-				<a href="?page=internal-link-manager-settings&tab=advanced" class="nav-tab <?php echo $active_tab == 'advanced' ? 'nav-tab-active' : ''; ?>">Advanced</a>
-			</h2>
+			<nav class="nav-tab-wrapper oilm-settings-tabs" aria-label="<?php esc_attr_e( 'Settings sections', 'internal-link-manager' ); ?>">
+				<?php foreach ( $tabs as $tab => $label ) : ?>
+					<a href="<?php echo esc_url( admin_url( 'admin.php?page=internal-link-manager-settings&tab=' . $tab ) ); ?>" class="nav-tab <?php echo $active_tab === $tab ? 'nav-tab-active' : ''; ?>" <?php echo $active_tab === $tab ? 'aria-current="page"' : ''; ?>>
+						<?php echo esc_html( $label ); ?>
+					</a>
+				<?php endforeach; ?>
+			</nav>
 
-			<form action="options.php" method="post">
+			<form action="options.php" method="post" class="oilm-settings-card">
 				<?php
 				settings_fields( 'oilm_settings_group' );
 				do_settings_sections( 'oilm_settings_' . $active_tab );
