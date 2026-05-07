@@ -256,8 +256,26 @@
     border: 1px solid #cfd7e2 !important;
     border-radius: 4px !important;
     color: var(--oilm-text) !important;
+    line-height: 1.4 !important;
     margin-top: 6px !important;
-    padding: 3px 8px !important;
+    padding: 3px 8px 3px 24px !important;
+    position: relative !important;
+}
+
+.oilm-modern-wrap .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    border-right: 1px solid #cfd7e2 !important;
+    color: var(--oilm-text-muted) !important;
+    left: 0 !important;
+    line-height: 1.4 !important;
+    padding: 3px 6px !important;
+    position: absolute !important;
+    top: 0 !important;
+}
+
+.oilm-modern-wrap .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover,
+.oilm-modern-wrap .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:focus {
+    background: #dfe7f1 !important;
+    color: var(--oilm-text) !important;
 }
 
 .oilm-link-result {
