@@ -13,6 +13,7 @@
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       op-internal-link-manager
  * Domain Path:       /languages
+ * Update URI:        https://github.com/Ritesh100/Internal-Links-Juicer
  * GitHub Plugin URI: Ritesh100/Internal-Links-Juicer
  * Release Asset: false
  */
@@ -30,6 +31,8 @@ define( 'OILM_VERSION', '1.0.2' );
 define( 'OILM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'OILM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'OILM_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
+define( 'OILM_GITHUB_OWNER', 'Ritesh100' );
+define( 'OILM_GITHUB_REPO', 'Internal-Links-Juicer' );
 
 /**
  * The code that runs during plugin activation.

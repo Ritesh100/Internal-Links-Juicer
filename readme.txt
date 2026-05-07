@@ -26,6 +26,7 @@ OP Internal Link Manager allows you to automate your internal linking strategy. 
 * ACF compatibility for custom field content linking.
 * Open links in new tab and nofollow defaults.
 * Debug mode for troubleshooting link insertion.
+* Native GitHub update checks using release or tag versions.
 
 == Installation ==
 
@@ -46,7 +47,7 @@ Yes, it is designed to be compatible with Elementor widgets and templates.
 = 1.0.2 =
 * Release: 2026-05-07
 * Renamed plugin slug to op-internal-link-manager for consistency
-* Added GitHub update support via GitHub Updater plugin
+* Added native GitHub update support, with GitHub Updater plugin headers retained
 * Updated readme.txt with proper changelog format and expanded descriptions
 * Updated WordPress tested up to version 6.8
 * Improved feature descriptions in readme

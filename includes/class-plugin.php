@@ -26,6 +26,7 @@ class OILM_Plugin {
 		if ( is_admin() ) {
 			require_once OILM_PLUGIN_DIR . 'includes/class-link-rules.php';
 			require_once OILM_PLUGIN_DIR . 'includes/class-reports.php';
+			require_once OILM_PLUGIN_DIR . 'includes/class-github-updater.php';
 		}
 
 		require_once OILM_PLUGIN_DIR . 'includes/class-content-processor.php';
@@ -48,6 +49,9 @@ class OILM_Plugin {
 			$plugin_rules = new OILM_Link_Rules();
 			add_action( 'admin_post_oilm_save_rule', array( $plugin_rules, 'save_rule' ) );
 			add_action( 'admin_post_oilm_delete_rule', array( $plugin_rules, 'delete_rule' ) );
+
+			$github_updater = new OILM_GitHub_Updater( OILM_PLUGIN_DIR . 'op-internal-link-manager.php', $this->get_version(), OILM_GITHUB_OWNER, OILM_GITHUB_REPO );
+			$github_updater->init();
 		}
 	}
 
