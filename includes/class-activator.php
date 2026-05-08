@@ -12,6 +12,7 @@ class OILM_Activator {
 
 		if ( $db_version !== OILM_VERSION ) {
 			self::create_tables();
+			self::normalize_location_counts();
 			self::set_default_options();
 		}
 	}
@@ -65,6 +66,33 @@ class OILM_Activator {
 		update_option( 'oilm_db_version', OILM_VERSION );
 	}
 
+	private static function normalize_location_counts() {
+		global $wpdb;
+
+		$rules_table_name = $wpdb->prefix . 'oilm_rules';
+		$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
+
+		$suppress = $wpdb->suppress_errors();
+		$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $locations_table_name ) );
+		$wpdb->suppress_errors( $suppress );
+
+		if ( $table_exists !== $locations_table_name ) {
+			return;
+		}
+
+		$wpdb->query( "UPDATE $locations_table_name SET insert_count = 1 WHERE insert_count > 1" );
+		$wpdb->query(
+			"UPDATE $rules_table_name rules
+			INNER JOIN (
+				SELECT rule_id, SUM(insert_count) AS total_insertions, MAX(last_inserted_at) AS last_inserted_at
+				FROM $locations_table_name
+				GROUP BY rule_id
+			) locations ON locations.rule_id = rules.id
+			SET rules.insert_count = locations.total_insertions,
+				rules.last_inserted_at = locations.last_inserted_at"
+		);
+	}
+
 	private static function set_default_options() {
 		$default_settings = array(
 			'global_max_links' => 0,
@@ -77,6 +105,7 @@ class OILM_Activator {
 			'exclude_existing_links' => 1,
 			'default_new_tab' => 0,
 			'default_nofollow' => 0,
+			'global_override_rule_attributes' => 0,
 			'debug_mode' => 0,
 			'remove_data_on_uninstall' => 0,
 			// New Advanced Options

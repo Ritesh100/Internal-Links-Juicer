@@ -127,6 +127,9 @@ class OILM_Content_Processor {
 		$global_url_max = isset( $this->settings['global_max_url_links'] ) ? absint( $this->settings['global_max_url_links'] ) : 0;
 		$first_occurrence_only = isset( $this->settings['first_occurrence_only'] ) && $this->settings['first_occurrence_only'];
 		$enable_pluralization = isset( $this->settings['enable_pluralization'] ) && $this->settings['enable_pluralization'];
+		$global_override_rule_attributes = ! empty( $this->settings['global_override_rule_attributes'] );
+		$default_new_tab = ! empty( $this->settings['default_new_tab'] );
+		$default_nofollow = ! empty( $this->settings['default_nofollow'] );
 		$link_css_class = $this->get_link_css_class();
 
 		$updates_made = false;
@@ -200,9 +203,11 @@ class OILM_Content_Processor {
 						$matched_text = $matches[1];
 
 						// Build replacement anchor
-						$target = $rule['open_new_tab'] || (isset($this->settings['default_new_tab']) && $this->settings['default_new_tab']) ? ' target="_blank"' : '';
+						$open_new_tab = $global_override_rule_attributes ? $default_new_tab : ( ! empty( $rule['open_new_tab'] ) || $default_new_tab );
+						$add_nofollow = $global_override_rule_attributes ? $default_nofollow : ( ! empty( $rule['is_nofollow'] ) || $default_nofollow );
+						$target = $open_new_tab ? ' target="_blank"' : '';
 						$rel_arr = array();
-						if ( $rule['is_nofollow'] || (isset($this->settings['default_nofollow']) && $this->settings['default_nofollow']) ) $rel_arr[] = 'nofollow';
+						if ( $add_nofollow ) $rel_arr[] = 'nofollow';
 						if ( $rule['is_sponsored'] ) $rel_arr[] = 'sponsored';
 						if ( strpos($target, '_blank') !== false ) $rel_arr[] = 'noopener';
 						
@@ -229,7 +234,7 @@ class OILM_Content_Processor {
 							$this->keyword_links_count[$kw_key] = isset($this->keyword_links_count[$kw_key]) ? $this->keyword_links_count[$kw_key] + 1 : 1;
 							$this->keyword_links_count[$rule['id']] = isset($this->keyword_links_count[$rule['id']]) ? $this->keyword_links_count[$rule['id']] + 1 : 1;
 
-							$rules_hit[$rule['id']] = isset($rules_hit[$rule['id']]) ? $rules_hit[$rule['id']] + 1 : 1;
+							$this->add_rule_hit( $rules_hit, $rule['id'] );
 							$this->add_location_hit( $location_hits, $rule['id'], $keyword );
 							$updates_made = true;
 							$replaced = true;
@@ -272,6 +277,18 @@ class OILM_Content_Processor {
 		$classes = array_filter( array_map( 'sanitize_html_class', $classes ) );
 
 		return implode( ' ', $classes );
+	}
+
+	private function add_rule_hit( &$rules_hit, $rule_id ) {
+		$rule_id = absint( $rule_id );
+
+		if ( ! isset( $rules_hit[ $rule_id ] ) ) {
+			$rules_hit[ $rule_id ] = array(
+				'count' => 0,
+			);
+		}
+
+		$rules_hit[ $rule_id ]['count']++;
 	}
 
 	private function set_current_context() {
@@ -321,12 +338,29 @@ class OILM_Content_Processor {
 		if ( empty( $rules_hit ) ) return;
 		
 		global $wpdb;
-		$table_name = $wpdb->prefix . 'oilm_rules';
+		$rules_table_name = $wpdb->prefix . 'oilm_rules';
+		$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
 
-		foreach ( $rules_hit as $rule_id => $count ) {
+		foreach ( $rules_hit as $rule_id => $hit ) {
+			$count = absint( $hit['count'] );
+			$existing_other_count = 0;
+
+			if ( $this->current_post_id ) {
+				$existing_other_count = (int) $wpdb->get_var( $wpdb->prepare(
+					"SELECT COALESCE(SUM(insert_count), 0)
+					FROM $locations_table_name
+					WHERE rule_id = %d
+						AND NOT (post_id = %d AND source_type = %s)",
+					$rule_id,
+					$this->current_post_id,
+					$this->current_source_type
+				) );
+			}
+
 			$wpdb->query( $wpdb->prepare( 
-				"UPDATE $table_name SET insert_count = insert_count + %d, last_inserted_at = CURRENT_TIMESTAMP WHERE id = %d", 
-				$count, $rule_id 
+				"UPDATE $rules_table_name SET insert_count = %d, last_inserted_at = CURRENT_TIMESTAMP WHERE id = %d",
+				$existing_other_count + $count,
+				$rule_id
 			) );
 		}
 	}
@@ -344,7 +378,7 @@ class OILM_Content_Processor {
 				VALUES
 					(%d, %d, %s, %d, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 				ON DUPLICATE KEY UPDATE
-					insert_count = insert_count + VALUES(insert_count),
+					insert_count = VALUES(insert_count),
 					last_keyword = VALUES(last_keyword),
 					last_inserted_at = CURRENT_TIMESTAMP",
 				$hit['rule_id'],
