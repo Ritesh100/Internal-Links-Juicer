@@ -158,6 +158,73 @@
     width: 18px;
 }
 
+.oilm-switch-field {
+    align-items: center;
+    display: inline-flex;
+    gap: 12px;
+    min-height: 32px;
+}
+
+.oilm-switch-input {
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+}
+
+.oilm-modern-wrap input[type="checkbox"].oilm-switch-input {
+    height: 1px;
+    margin: 0;
+    width: 1px;
+}
+
+.oilm-switch {
+    background: #c3c4c7;
+    border: 1px solid #a7aaad;
+    border-radius: 999px;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    height: 24px;
+    position: relative;
+    transition: background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+    width: 44px;
+}
+
+.oilm-switch::before {
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(29, 35, 39, 0.22);
+    content: "";
+    height: 18px;
+    left: 2px;
+    position: absolute;
+    top: 2px;
+    transition: transform 0.16s ease;
+    width: 18px;
+}
+
+.oilm-switch-input:checked + .oilm-switch {
+    background: var(--oilm-primary);
+    border-color: var(--oilm-primary);
+}
+
+.oilm-switch-input:checked + .oilm-switch::before {
+    transform: translateX(20px);
+}
+
+.oilm-switch-input:focus-visible + .oilm-switch {
+    box-shadow: 0 0 0 3px var(--oilm-focus);
+}
+
+.oilm-switch-field:hover .oilm-switch {
+    border-color: var(--oilm-primary-dark);
+}
+
+.oilm-switch-label {
+    color: var(--oilm-text);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
 .oilm-modern-wrap label {
     color: var(--oilm-text);
 }
@@ -208,6 +275,25 @@
 
 .oilm-rule-form {
     max-width: 960px;
+}
+
+.oilm-locations-card {
+    max-width: none;
+}
+
+.oilm-locations-card .wp-list-table {
+    box-shadow: none;
+    margin-top: 18px;
+}
+
+.oilm-locations-table th,
+.oilm-locations-table td {
+    vertical-align: middle;
+}
+
+.oilm-empty-state {
+    color: var(--oilm-text-muted);
+    margin: 18px 0 0;
 }
 
 .oilm-url-field-wrapper {

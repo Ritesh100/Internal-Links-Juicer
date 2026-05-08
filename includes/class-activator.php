@@ -7,11 +7,21 @@ class OILM_Activator {
 		self::set_default_options();
 	}
 
-	private static function create_tables() {
+	public static function maybe_upgrade() {
+		$db_version = get_option( 'oilm_db_version' );
+
+		if ( $db_version !== OILM_VERSION ) {
+			self::create_tables();
+			self::set_default_options();
+		}
+	}
+
+	public static function create_tables() {
 		global $wpdb;
 
 		$charset_collate = $wpdb->get_charset_collate();
 		$rules_table_name = $wpdb->prefix . 'oilm_rules';
+		$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
 
 		$sql = "CREATE TABLE $rules_table_name (
 			id bigint(20) NOT NULL AUTO_INCREMENT,
@@ -31,12 +41,28 @@ class OILM_Activator {
 			created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
 			updated_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL ON UPDATE CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id)
+		) $charset_collate;
+
+		CREATE TABLE $locations_table_name (
+			id bigint(20) NOT NULL AUTO_INCREMENT,
+			rule_id bigint(20) NOT NULL,
+			post_id bigint(20) NOT NULL,
+			source_type varchar(30) DEFAULT 'content' NOT NULL,
+			insert_count bigint(20) DEFAULT 0 NOT NULL,
+			last_keyword varchar(255) DEFAULT '' NOT NULL,
+			first_inserted_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			last_inserted_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY rule_post_source (rule_id, post_id, source_type),
+			KEY rule_id (rule_id),
+			KEY post_id (post_id),
+			KEY last_inserted_at (last_inserted_at)
 		) $charset_collate;";
 
 		require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
 		dbDelta( $sql );
 
-		add_option( 'oilm_db_version', OILM_VERSION );
+		update_option( 'oilm_db_version', OILM_VERSION );
 	}
 
 	private static function set_default_options() {

@@ -161,10 +161,14 @@ class OILM_Settings {
 		$options = get_option( 'oilm_settings' );
 		$id = $args['id'];
 		$checked = isset( $options[$id] ) ? $options[$id] : 0;
-		echo '<input type="checkbox" name="oilm_settings[' . esc_attr($id) . ']" value="1" ' . checked( 1, $checked, false ) . ' />';
-		if ( isset( $args['desc'] ) ) {
-			echo '<p class="description">' . esc_html( $args['desc'] ) . '</p>';
-		}
+		$desc = isset( $args['desc'] ) ? $args['desc'] : '';
+		$label = $desc ? $desc : __( 'Enabled', 'op-internal-link-manager' );
+
+		echo '<label class="oilm-switch-field">';
+		echo '<input type="checkbox" class="oilm-switch-input" name="oilm_settings[' . esc_attr($id) . ']" value="1" ' . checked( 1, $checked, false ) . ' />';
+		echo '<span class="oilm-switch" aria-hidden="true"></span>';
+		echo '<span class="oilm-switch-label">' . esc_html( $label ) . '</span>';
+		echo '</label>';
 	}
 
 	public function render_text( $args ) {

@@ -41,7 +41,27 @@ class OILM_Rules_List_Table extends WP_List_Table {
 			case 'priority':
 				return absint( $item['priority'] );
 			case 'stats':
-				return absint( $item['insert_count'] ) . ' uses';
+				$count = absint( $item['insert_count'] );
+				$label = sprintf(
+					_n( '%s use', '%s uses', $count, 'op-internal-link-manager' ),
+					number_format_i18n( $count )
+				);
+
+				if ( ! empty( $item['location_count'] ) ) {
+					$url = add_query_arg(
+						array(
+							'page'     => 'op-internal-link-manager',
+							'action'   => 'edit',
+							'rule'     => absint( $item['id'] ),
+							'_wpnonce' => wp_create_nonce( 'oilm_edit_rule_' . $item['id'] ),
+						),
+						admin_url( 'admin.php' )
+					);
+
+					return sprintf( '<a href="%s#oilm-insertion-locations">%s</a>', esc_url( $url ), esc_html( $label ) );
+				}
+
+				return esc_html( $label );
 			default:
 				return print_r( $item, true );
 		}
@@ -93,7 +113,20 @@ class OILM_Rules_List_Table extends WP_List_Table {
 		}
 		$order = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
 
-		$this->items = $wpdb->get_results( "SELECT * FROM $table_name ORDER BY $orderby $order LIMIT $per_page OFFSET $offset", ARRAY_A );
+		$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
+
+		$this->items = $wpdb->get_results(
+			"SELECT rules.*, COALESCE(location_totals.location_count, 0) AS location_count
+			FROM $table_name rules
+			LEFT JOIN (
+				SELECT rule_id, COUNT(id) AS location_count
+				FROM $locations_table_name
+				GROUP BY rule_id
+			) location_totals ON location_totals.rule_id = rules.id
+			ORDER BY rules.$orderby $order
+			LIMIT $per_page OFFSET $offset",
+			ARRAY_A
+		);
 		
 		$this->set_pagination_args( array(
 			'total_items' => $total_items,
@@ -134,6 +167,131 @@ class OILM_Link_Rules {
 		<?php
 	}
 
+	private function render_insertion_locations( $rule ) {
+		global $wpdb;
+
+		$rule_id = absint( $rule['id'] );
+		$table_name = $wpdb->prefix . 'oilm_insertion_locations';
+		$per_page = 20;
+		$current_page = isset( $_GET['location_page'] ) ? max( 1, absint( $_GET['location_page'] ) ) : 1;
+		$offset = ( $current_page - 1 ) * $per_page;
+		$total_items = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(id) FROM $table_name WHERE rule_id = %d", $rule_id ) );
+		$locations = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT locations.*, posts.post_title, posts.post_type, posts.post_status
+				FROM $table_name locations
+				LEFT JOIN {$wpdb->posts} posts ON posts.ID = locations.post_id
+				WHERE locations.rule_id = %d
+				ORDER BY locations.last_inserted_at DESC
+				LIMIT %d OFFSET %d",
+				$rule_id,
+				$per_page,
+				$offset
+			)
+		);
+
+		$total_pages = $total_items > 0 ? (int) ceil( $total_items / $per_page ) : 1;
+		$base_url = add_query_arg(
+			array(
+				'page'     => 'op-internal-link-manager',
+				'action'   => 'edit',
+				'rule'     => $rule_id,
+				'_wpnonce' => wp_create_nonce( 'oilm_edit_rule_' . $rule_id ),
+			),
+			admin_url( 'admin.php' )
+		);
+		?>
+		<div id="oilm-insertion-locations" class="oilm-settings-card oilm-locations-card">
+			<h2><?php esc_html_e( 'Insertion Locations', 'op-internal-link-manager' ); ?></h2>
+			<p><?php esc_html_e( 'These are posts and pages where this rule inserted links during frontend rendering.', 'op-internal-link-manager' ); ?></p>
+
+			<?php if ( empty( $locations ) ) : ?>
+				<p class="oilm-empty-state">
+					<?php
+					if ( ! empty( $rule['insert_count'] ) ) {
+						esc_html_e( 'Locations will appear as pages are viewed after tracking was enabled. Existing total counts cannot be mapped to posts retroactively.', 'op-internal-link-manager' );
+					} else {
+						esc_html_e( 'No insertion locations have been logged for this rule yet.', 'op-internal-link-manager' );
+					}
+					?>
+				</p>
+			<?php else : ?>
+				<table class="wp-list-table widefat striped oilm-locations-table">
+					<thead>
+						<tr>
+							<th><?php esc_html_e( 'Title', 'op-internal-link-manager' ); ?></th>
+							<th><?php esc_html_e( 'Type / Status', 'op-internal-link-manager' ); ?></th>
+							<th><?php esc_html_e( 'Source', 'op-internal-link-manager' ); ?></th>
+							<th><?php esc_html_e( 'Insertions', 'op-internal-link-manager' ); ?></th>
+							<th><?php esc_html_e( 'Last Keyword', 'op-internal-link-manager' ); ?></th>
+							<th><?php esc_html_e( 'Last Inserted', 'op-internal-link-manager' ); ?></th>
+							<th><?php esc_html_e( 'Actions', 'op-internal-link-manager' ); ?></th>
+						</tr>
+					</thead>
+					<tbody>
+						<?php foreach ( $locations as $location ) : ?>
+							<?php
+							$post_title = $location->post_title ? $location->post_title : sprintf( __( '(Post #%d)', 'op-internal-link-manager' ), absint( $location->post_id ) );
+							$view_link = get_permalink( $location->post_id );
+							$edit_link = get_edit_post_link( $location->post_id );
+							?>
+							<tr>
+								<td><?php echo esc_html( $post_title ); ?></td>
+								<td><?php echo esc_html( $location->post_type && $location->post_status ? $location->post_type . ' / ' . $location->post_status : __( 'Unknown', 'op-internal-link-manager' ) ); ?></td>
+								<td><?php echo esc_html( ucfirst( $location->source_type ) ); ?></td>
+								<td><?php echo absint( $location->insert_count ); ?></td>
+								<td><?php echo esc_html( $location->last_keyword ); ?></td>
+								<td><?php echo esc_html( $location->last_inserted_at ); ?></td>
+								<td>
+									<?php if ( $view_link ) : ?>
+										<a href="<?php echo esc_url( $view_link ); ?>" target="_blank" rel="noopener"><?php esc_html_e( 'View', 'op-internal-link-manager' ); ?></a>
+									<?php endif; ?>
+									<?php if ( $view_link && $edit_link ) : ?>
+										<span aria-hidden="true"> | </span>
+									<?php endif; ?>
+									<?php if ( $edit_link ) : ?>
+										<a href="<?php echo esc_url( $edit_link ); ?>"><?php esc_html_e( 'Edit', 'op-internal-link-manager' ); ?></a>
+									<?php endif; ?>
+								</td>
+							</tr>
+						<?php endforeach; ?>
+					</tbody>
+				</table>
+
+				<?php if ( $total_pages > 1 ) : ?>
+					<div class="tablenav bottom">
+						<div class="tablenav-pages">
+							<span class="displaying-num">
+								<?php
+								printf(
+									esc_html( _n( '%s item', '%s items', $total_items, 'op-internal-link-manager' ) ),
+									number_format_i18n( $total_items )
+								);
+								?>
+							</span>
+							<?php if ( $current_page > 1 ) : ?>
+								<a class="button" href="<?php echo esc_url( add_query_arg( 'location_page', $current_page - 1, $base_url ) . '#oilm-insertion-locations' ); ?>"><?php esc_html_e( 'Previous', 'op-internal-link-manager' ); ?></a>
+							<?php endif; ?>
+							<span class="paging-input">
+								<?php
+								printf(
+									esc_html__( '%1$s of %2$s', 'op-internal-link-manager' ),
+									number_format_i18n( $current_page ),
+									number_format_i18n( $total_pages )
+								);
+								?>
+							</span>
+							<?php if ( $current_page < $total_pages ) : ?>
+								<a class="button" href="<?php echo esc_url( add_query_arg( 'location_page', $current_page + 1, $base_url ) . '#oilm-insertion-locations' ); ?>"><?php esc_html_e( 'Next', 'op-internal-link-manager' ); ?></a>
+							<?php endif; ?>
+						</div>
+					</div>
+				<?php endif; ?>
+			<?php endif; ?>
+		</div>
+		<?php
+	}
+
 	private function render_form() {
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'oilm_rules';
@@ -155,7 +313,7 @@ class OILM_Link_Rules {
 
 		if ( isset( $_GET['rule'] ) ) {
 			$rule_id = absint( $_GET['rule'] );
-			if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'oilm_edit_rule_' . $rule_id ) ) {
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'oilm_edit_rule_' . $rule_id ) ) {
 				die( 'Security check failed' );
 			}
 			$existing = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table_name WHERE id = %d", $rule_id ), ARRAY_A );
@@ -242,6 +400,11 @@ class OILM_Link_Rules {
 				</table>
 				<?php submit_button( __( 'Save Rule', 'op-internal-link-manager' ) ); ?>
 			</form>
+			<?php
+			if ( ! empty( $rule['id'] ) ) {
+				$this->render_insertion_locations( $rule );
+			}
+			?>
 		</div>
 		<?php
 	}
@@ -294,7 +457,9 @@ class OILM_Link_Rules {
 		if ( $rule_id && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'oilm_delete_rule_' . $rule_id ) ) {
 			global $wpdb;
 			$table_name = $wpdb->prefix . 'oilm_rules';
+			$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
 			$wpdb->delete( $table_name, array( 'id' => $rule_id ) );
+			$wpdb->delete( $locations_table_name, array( 'rule_id' => $rule_id ) );
 			delete_transient( 'oilm_active_rules' );
 		}
 		

@@ -4,7 +4,7 @@ Tags: internal links, seo, auto link, internal linking, link building
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.0.9
+Stable tag: PAtch
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,7 @@ OP Internal Link Manager allows you to automate your internal linking strategy. 
 * ACF compatibility for custom field content linking.
 * Open links in new tab and nofollow defaults.
 * Configurable CSS class for generated internal links.
+* Tracks the posts and pages where generated links are inserted, with clickable admin reports.
 * Debug mode for troubleshooting link insertion.
 * Native GitHub update checks using the GitHub main branch version.
 
@@ -44,6 +45,12 @@ No. The plugin parses the content on-the-fly when rendering the page, leaving yo
 Yes, it is designed to be compatible with Elementor widgets and templates.
 
 == Changelog ==
+
+= 1.1.1 =
+* Release: 2026-05-08
+* Added performant insertion location tracking by rule, post, and source.
+* Made insertion counts clickable when tracked locations are available.
+* Added paginated insertion locations to the rule edit page with View and Edit links.
 
 = 1.0.9 =
 * Release: 2026-05-08

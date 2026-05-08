@@ -8,6 +8,9 @@ class OILM_Content_Processor {
 	private $url_links_count = array();
 	private $keyword_links_count = array();
 	private $processed_posts = array(); // Prevent infinite loops
+	private $current_post_id = 0;
+	private $current_post_url = '';
+	private $current_source_type = 'content';
 
 	public function __construct() {
 		$this->settings = get_option( 'oilm_settings' );
@@ -45,6 +48,8 @@ class OILM_Content_Processor {
 		if ( is_admin() && ! wp_doing_ajax() ) {
 			return $content; // Skip backend editor
 		}
+
+		$this->set_current_context();
 
 		// Check post type restrictions if in main query
 		if ( in_the_loop() && is_main_query() ) {
@@ -126,6 +131,7 @@ class OILM_Content_Processor {
 
 		$updates_made = false;
 		$rules_hit = array(); // Track which rules were used for stats
+		$location_hits = array();
 
 		foreach ( $text_nodes as $node ) {
 			if ( $first_occurrence_only && $this->page_links_count >= 1 ) {
@@ -164,9 +170,7 @@ class OILM_Content_Processor {
 				}
 
 				// Avoid self-linking
-				global $post;
-				$current_url = $post ? get_permalink( $post->ID ) : '';
-				if ( $current_url && rtrim($current_url, '/') === rtrim($rule['url'], '/') ) {
+				if ( $this->current_post_url && rtrim($this->current_post_url, '/') === rtrim($rule['url'], '/') ) {
 					continue;
 				}
 
@@ -226,6 +230,7 @@ class OILM_Content_Processor {
 							$this->keyword_links_count[$rule['id']] = isset($this->keyword_links_count[$rule['id']]) ? $this->keyword_links_count[$rule['id']] + 1 : 1;
 
 							$rules_hit[$rule['id']] = isset($rules_hit[$rule['id']]) ? $rules_hit[$rule['id']] + 1 : 1;
+							$this->add_location_hit( $location_hits, $rule['id'], $keyword );
 							$updates_made = true;
 							$replaced = true;
 							break 2; // Move to next node since we modified the DOM structure for this one
@@ -241,6 +246,7 @@ class OILM_Content_Processor {
 			// To avoid DB calls on every load, we might only update stats occasionally or via transient.
 			// For lightweight tracking, update DB here
 			$this->update_stats( $rules_hit );
+			$this->update_location_stats( $location_hits );
 
 			// Extract body content without the wrapper
 			$body = $dom->getElementsByTagName('div')->item(0);
@@ -268,6 +274,49 @@ class OILM_Content_Processor {
 		return implode( ' ', $classes );
 	}
 
+	private function set_current_context() {
+		global $post;
+
+		$this->current_post_id = $post ? absint( $post->ID ) : 0;
+		$this->current_post_url = $this->current_post_id ? get_permalink( $this->current_post_id ) : '';
+		$this->current_source_type = 'content';
+
+		$current_filter = current_filter();
+		if ( $current_filter === 'get_the_excerpt' ) {
+			$this->current_source_type = 'excerpt';
+		} elseif ( $current_filter === 'comment_text' ) {
+			$this->current_source_type = 'comment';
+		} elseif ( strpos( (string) $current_filter, 'elementor' ) !== false ) {
+			$this->current_source_type = 'elementor';
+		} elseif ( strpos( (string) $current_filter, 'acf' ) !== false ) {
+			$this->current_source_type = 'acf';
+		} elseif ( strpos( (string) $current_filter, 'woocommerce' ) !== false || strpos( (string) $current_filter, 'product' ) !== false ) {
+			$this->current_source_type = 'woocommerce';
+		}
+	}
+
+	private function add_location_hit( &$location_hits, $rule_id, $keyword ) {
+		if ( ! $this->current_post_id ) {
+			return;
+		}
+
+		$rule_id = absint( $rule_id );
+		$key = $rule_id . ':' . $this->current_post_id . ':' . $this->current_source_type;
+
+		if ( ! isset( $location_hits[ $key ] ) ) {
+			$location_hits[ $key ] = array(
+				'rule_id'     => $rule_id,
+				'post_id'     => $this->current_post_id,
+				'source_type' => $this->current_source_type,
+				'count'       => 0,
+				'keyword'     => $keyword,
+			);
+		}
+
+		$location_hits[ $key ]['count']++;
+		$location_hits[ $key ]['keyword'] = $keyword;
+	}
+
 	private function update_stats( $rules_hit ) {
 		if ( empty( $rules_hit ) ) return;
 		
@@ -278,6 +327,31 @@ class OILM_Content_Processor {
 			$wpdb->query( $wpdb->prepare( 
 				"UPDATE $table_name SET insert_count = insert_count + %d, last_inserted_at = CURRENT_TIMESTAMP WHERE id = %d", 
 				$count, $rule_id 
+			) );
+		}
+	}
+
+	private function update_location_stats( $location_hits ) {
+		if ( empty( $location_hits ) ) return;
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'oilm_insertion_locations';
+
+		foreach ( $location_hits as $hit ) {
+			$wpdb->query( $wpdb->prepare(
+				"INSERT INTO $table_name
+					(rule_id, post_id, source_type, insert_count, last_keyword, first_inserted_at, last_inserted_at)
+				VALUES
+					(%d, %d, %s, %d, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				ON DUPLICATE KEY UPDATE
+					insert_count = insert_count + VALUES(insert_count),
+					last_keyword = VALUES(last_keyword),
+					last_inserted_at = CURRENT_TIMESTAMP",
+				$hit['rule_id'],
+				$hit['post_id'],
+				$hit['source_type'],
+				$hit['count'],
+				$hit['keyword']
 			) );
 		}
 	}

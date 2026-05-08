@@ -15,18 +15,21 @@ class OILM_Plugin {
 		$this->plugin_name = 'op-internal-link-manager';
 
 		$this->load_dependencies();
+		OILM_Activator::maybe_upgrade();
 		$this->define_admin_hooks();
 		$this->define_public_hooks();
 	}
 
 	private function load_dependencies() {
+		require_once OILM_PLUGIN_DIR . 'includes/class-activator.php';
 		require_once OILM_PLUGIN_DIR . 'includes/class-admin.php';
 		require_once OILM_PLUGIN_DIR . 'includes/class-settings.php';
 		
+		require_once OILM_PLUGIN_DIR . 'includes/class-github-updater.php';
+
 		if ( is_admin() ) {
 			require_once OILM_PLUGIN_DIR . 'includes/class-link-rules.php';
 			require_once OILM_PLUGIN_DIR . 'includes/class-reports.php';
-			require_once OILM_PLUGIN_DIR . 'includes/class-github-updater.php';
 		}
 
 		require_once OILM_PLUGIN_DIR . 'includes/class-content-processor.php';
@@ -46,14 +49,14 @@ class OILM_Plugin {
 		$plugin_settings = new OILM_Settings();
 		add_action( 'admin_init', array( $plugin_settings, 'register_settings' ) );
 
+		$github_updater = new OILM_GitHub_Updater( OILM_PLUGIN_DIR . 'op-internal-link-manager.php', $this->get_version(), OILM_GITHUB_OWNER, OILM_GITHUB_REPO, OILM_GITHUB_BRANCH );
+		$github_updater->init();
+
 		if ( is_admin() ) {
 			$plugin_rules = new OILM_Link_Rules();
 			add_action( 'admin_post_oilm_save_rule', array( $plugin_rules, 'save_rule' ) );
 			add_action( 'admin_post_oilm_delete_rule', array( $plugin_rules, 'delete_rule' ) );
 			add_action( 'wp_ajax_oilm_search_links', array( $plugin_rules, 'search_links' ) );
-
-			$github_updater = new OILM_GitHub_Updater( OILM_PLUGIN_DIR . 'op-internal-link-manager.php', $this->get_version(), OILM_GITHUB_OWNER, OILM_GITHUB_REPO, OILM_GITHUB_BRANCH );
-			$github_updater->init();
 		}
 	}
 

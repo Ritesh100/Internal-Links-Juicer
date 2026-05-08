@@ -18,9 +18,11 @@ if ( $remove_data_on_uninstall ) {
 	global $wpdb;
 
 	$rules_table_name = $wpdb->prefix . 'oilm_rules';
+	$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
 
 	// Delete tables
 	$wpdb->query( "DROP TABLE IF EXISTS {$rules_table_name}" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$locations_table_name}" );
 
 	// Delete options
 	delete_option( 'oilm_db_version' );

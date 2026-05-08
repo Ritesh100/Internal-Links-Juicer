@@ -38,6 +38,7 @@ class OILM_GitHub_Updater {
 		add_filter( 'plugins_api', array( $this, 'plugin_information' ), 20, 3 );
 		add_filter( 'upgrader_pre_download', array( $this, 'download_private_package' ), 10, 4 );
 		add_filter( 'upgrader_source_selection', array( $this, 'rename_github_source' ), 10, 4 );
+		add_action( 'upgrader_process_complete', array( $this, 'clear_update_cache' ), 10, 2 );
 	}
 
 	public function check_for_update( $transient ) {
@@ -123,7 +124,7 @@ class OILM_GitHub_Updater {
 			return $reply;
 		}
 
-		if ( $package !== $this->zip_url() || ! $this->github_token() ) {
+		if ( $package !== $this->api_zip_url() || ! $this->github_token() ) {
 			return $reply;
 		}
 
@@ -154,6 +155,15 @@ class OILM_GitHub_Updater {
 		}
 
 		return $download_file;
+	}
+
+	public function clear_update_cache( $upgrader, $hook_extra ) {
+		if ( empty( $hook_extra['plugins'] ) || ! in_array( $this->plugin_basename, (array) $hook_extra['plugins'], true ) ) {
+			return;
+		}
+
+		delete_site_transient( $this->cache_key );
+		delete_site_transient( 'update_plugins' );
 	}
 
 	private function get_remote_plugin_data( $force_refresh = false ) {
@@ -292,6 +302,19 @@ class OILM_GitHub_Updater {
 	}
 
 	private function zip_url() {
+		if ( $this->github_token() ) {
+			return $this->api_zip_url();
+		}
+
+		return sprintf(
+			'https://codeload.github.com/%s/%s/zip/refs/heads/%s',
+			rawurlencode( $this->owner ),
+			rawurlencode( $this->repo ),
+			rawurlencode( $this->branch )
+		);
+	}
+
+	private function api_zip_url() {
 		return sprintf(
 			'%s/zipball/%s',
 			$this->api_url,
