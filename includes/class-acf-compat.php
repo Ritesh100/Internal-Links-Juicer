@@ -80,64 +80,61 @@ class OILM_ACF_Compat {
 			return $html;
 		}
 
-		$dom = new DOMDocument();
-		libxml_use_internal_errors( true );
-
-		if ( function_exists( 'mb_convert_encoding' ) ) {
-			$html = mb_convert_encoding( $html, 'HTML-ENTITIES', 'UTF-8' );
-		}
-
-		$dom->loadHTML( $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
-		libxml_clear_errors();
-
-		$xpath = new DOMXPath( $dom );
-
-		// Build XPath queries for all excluded areas (tags, classes, IDs)
-		$exclusion_queries = array();
-
-		// 1. Structural tag exclusions
-		foreach ( array( 'header', 'nav', 'footer' ) as $tag ) {
-			$exclusion_queries[] = "//{$tag}//a[contains(@class, 'op-internal-link')]";
-		}
-
-		// 2. Common class/ID exclusions matching parse_and_replace in content processor
-		$extra_exclusions = array(
+		// Collect all CSS selectors for excluded areas
+		$excluded = array(
+			// Tag-based
+			'header', 'nav', 'footer',
+			// Class-based
 			'.navbar', '.site-header', '.main-navigation', '.navigation',
 			'.menu-container', '.sub-menu', '.children', '.menu-item-has-children',
-			'.page_item_has_children', '#header', '#nav', '.elementor-location-header'
+			'.page_item_has_children', '.elementor-location-header',
+			// ID-based
+			'#header', '#nav',
 		);
 
-		// 3. User-configured exclusions from settings
 		$settings = get_option( 'oilm_settings' );
 		if ( isset( $settings['exclude_elements'] ) && is_array( $settings['exclude_elements'] ) ) {
-			$extra_exclusions = array_merge( $extra_exclusions, $settings['exclude_elements'] );
+			$excluded = array_merge( $excluded, $settings['exclude_elements'] );
 		}
 
-		foreach ( $extra_exclusions as $excl ) {
-			$excl = trim( $excl );
-			if ( '' === $excl ) {
-				continue;
-			}
-			if ( $excl[0] === '.' ) {
-				$class = substr( $excl, 1 );
-				$exclusion_queries[] = "//*[contains(concat(' ', normalize-space(@class), ' '), ' $class ')]//a[contains(@class, 'op-internal-link')]";
-			} elseif ( $excl[0] === '#' ) {
-				$id = substr( $excl, 1 );
-				$exclusion_queries[] = "//*[@id='$id']//a[contains(@class, 'op-internal-link')]";
+		// Build patterns: for each excluded container, find <a class="op-internal-link">
+		// and replace it with just its text content.
+		$link_regex = '#<a\b[^>]*class="[^"]*\bop-internal-link\b[^"]*"[^>]*>(.*?)</a>#is';
+
+		foreach ( $excluded as $sel ) {
+			$sel = trim( $sel );
+			if ( $sel === '' ) continue;
+
+			if ( $sel[0] === '#' ) {
+				$id = preg_quote( substr( $sel, 1 ), '#' );
+				$html = preg_replace_callback(
+					'#<(\w+)[^>]*\bid\s*=\s*["\']' . $id . '["\'][^>]*>.*?</\1>#is',
+					function( $m ) use ( $link_regex ) {
+						return preg_replace( $link_regex, '$1', $m[0] );
+					},
+					$html
+				);
+			} elseif ( $sel[0] === '.' ) {
+				$class = preg_quote( substr( $sel, 1 ), '#' );
+				$html = preg_replace_callback(
+					'#<(\w+)[^>]*\bclass\s*=\s*["\'][^"]*\b' . $class . '\b[^"]*["\'][^>]*>.*?</\1>#is',
+					function( $m ) use ( $link_regex ) {
+						return preg_replace( $link_regex, '$1', $m[0] );
+					},
+					$html
+				);
 			} else {
-				$exclusion_queries[] = "//{$excl}//a[contains(@class, 'op-internal-link')]";
+				$tag = preg_quote( $sel, '#' );
+				$html = preg_replace_callback(
+					'#<' . $tag . '\b[^>]*>.*?</' . $tag . '\s*>#is',
+					function( $m ) use ( $link_regex ) {
+						return preg_replace( $link_regex, '$1', $m[0] );
+					},
+					$html
+				);
 			}
 		}
 
-		// Strip matching links in all excluded areas
-		foreach ( $exclusion_queries as $query ) {
-			$links = $xpath->query( $query );
-			foreach ( $links as $link ) {
-				$text = $link->textContent;
-				$link->parentNode->replaceChild( $dom->createTextNode( $text ), $link );
-			}
-		}
-
-		return $dom->saveHTML();
+		return $html;
 	}
 }
