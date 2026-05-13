@@ -107,17 +107,18 @@ class OILM_Content_Processor {
 		$xpath = new DOMXPath( $dom );
 		
 		// Find text nodes that are NOT inside exclusions
-		$exclusions = array('a', 'script', 'style', 'code', 'pre', 'textarea', 'button', 'iframe');
+		$exclusions = array('a', 'script', 'style', 'code', 'pre', 'textarea', 'button', 'iframe', 'header', 'nav');
 		
 		if ( isset( $this->settings['exclude_headings'] ) && $this->settings['exclude_headings'] ) {
 			$exclusions = array_merge( $exclusions, array('h1', 'h2', 'h3', 'h4', 'h5', 'h6') );
 		}
 
+		$extra_exclusions = array();
 		if ( isset( $this->settings['exclude_elements'] ) && is_array( $this->settings['exclude_elements'] ) ) {
-			$exclusions = array_merge( $exclusions, $this->settings['exclude_elements'] );
+			$extra_exclusions = $this->settings['exclude_elements'];
 		}
 
-		$query = "//text()[not(ancestor::" . implode(') and not(ancestor::', $exclusions) . ")]";
+		$query = $this->build_exclusion_xpath( $exclusions, $extra_exclusions );
 		$text_nodes = $xpath->query( $query );
 
 		// Extract existing links to avoid duplicating static links
@@ -270,6 +271,34 @@ class OILM_Content_Processor {
 		}
 
 		return $content;
+	}
+
+	private function build_exclusion_xpath( $tag_exclusions, $extra_exclusions ) {
+		$conditions = array();
+
+		foreach ( $tag_exclusions as $tag ) {
+			$tag = trim( $tag );
+			if ( '' === $tag ) continue;
+			$conditions[] = "not(ancestor::$tag)";
+		}
+
+		foreach ( $extra_exclusions as $excl ) {
+			$excl = trim( $excl );
+			if ( '' === $excl ) continue;
+
+			$first = $excl[0];
+			if ( '.' === $first ) {
+				$class = substr( $excl, 1 );
+				$conditions[] = "not(ancestor::*[contains(@class, '$class')])";
+			} elseif ( '#' === $first ) {
+				$id = substr( $excl, 1 );
+				$conditions[] = "not(ancestor::*[@id='$id'])";
+			} else {
+				$conditions[] = "not(ancestor::$excl)";
+			}
+		}
+
+		return '//text()[' . implode( ' and ', $conditions ) . ']';
 	}
 
 	private function get_link_css_class() {

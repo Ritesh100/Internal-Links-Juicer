@@ -87,10 +87,32 @@ class OILM_Settings {
 					$settings[ $key ] = implode( ' ', $classes );
 					break;
 
-				case 'enabled_post_types':
-				case 'exclude_elements':
-					$settings[ $key ] = is_array( $value ) ? array_map( 'sanitize_key', wp_unslash( $value ) ) : array();
-					break;
+			case 'enabled_post_types':
+				$settings[ $key ] = is_array( $value ) ? array_map( 'sanitize_key', wp_unslash( $value ) ) : array();
+				break;
+
+			case 'exclude_elements':
+				if ( is_string( $value ) ) {
+					$lines = explode( "\n", wp_unslash( $value ) );
+					$lines = array_map( 'trim', $lines );
+					$lines = array_filter( $lines, function( $l ) {
+						return '' !== $l;
+					} );
+					$sanitized = array();
+					foreach ( $lines as $line ) {
+						if ( preg_match( '/^[a-zA-Z][a-zA-Z0-9-]*$/', $line ) ) {
+							$sanitized[] = $line;
+						} elseif ( preg_match( '/^\.[a-zA-Z][a-zA-Z0-9_-]*$/', $line ) ) {
+							$sanitized[] = $line;
+						} elseif ( preg_match( '/^#[a-zA-Z][a-zA-Z0-9_-]*$/', $line ) ) {
+							$sanitized[] = $line;
+						}
+					}
+					$settings[ $key ] = $sanitized;
+				} else {
+					$settings[ $key ] = array();
+				}
+				break;
 
 				case 'exclude_post_ids':
 					$settings[ $key ] = sanitize_text_field( wp_unslash( $value ) );
@@ -213,15 +235,8 @@ class OILM_Settings {
 		$options = get_option( 'oilm_settings' );
 		$excluded = isset( $options['exclude_elements'] ) && is_array( $options['exclude_elements'] ) ? $options['exclude_elements'] : array();
 		
-		$elements = array( 'blockquote', 'strong', 'em', 'i', 'b', 'ul', 'ol', 'li', 'table', 'span' );
-		
-		echo '<select name="oilm_settings[exclude_elements][]" multiple="multiple" class="oilm-select2 regular-text">';
-		foreach ( $elements as $el ) {
-			$selected = in_array( $el, $excluded ) ? 'selected="selected"' : '';
-			echo '<option value="' . esc_attr( $el ) . '" ' . $selected . '>&lt;' . esc_html( $el ) . '&gt;</option>';
-		}
-		echo '</select>';
-		echo '<p class="description">Select HTML elements where links should NEVER be inserted.</p>';
+		echo '<textarea name="oilm_settings[exclude_elements]" rows="5" class="large-text">' . esc_textarea( implode( "\n", $excluded ) ) . '</textarea>';
+		echo '<p class="description">' . __( 'One per line. Supports element names (e.g. <code>header</code>, <code>nav</code>, <code>footer</code>), class selectors (e.g. <code>.widget-title</code>), and ID selectors (e.g. <code>#sidebar</code>).', 'op-internal-link-manager' ) . '</p>';
 	}
 
 	public function render_page() {
