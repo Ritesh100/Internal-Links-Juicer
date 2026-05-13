@@ -9,7 +9,11 @@ class OILM_ACF_Compat {
 	}
 
 	public function init() {
-		// Only apply if ACF is active
+		// Defer registration to plugins_loaded to ensure ACF is loaded first
+		add_action( 'plugins_loaded', array( $this, 'maybe_register_acf_filter' ) );
+	}
+
+	public function maybe_register_acf_filter() {
 		if ( ! class_exists( 'ACF' ) ) {
 			return;
 		}
@@ -21,7 +25,6 @@ class OILM_ACF_Compat {
 			return;
 		}
 
-		// Process all ACF field types (accordion, text, textarea, wysiwyg, email, url, etc.)
 		add_filter( 'acf/format_value', array( $this, 'process_acf_field' ), 99, 3 );
 	}
 
