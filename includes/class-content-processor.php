@@ -70,10 +70,13 @@ class OILM_Content_Processor {
 					}
 				}
 
-				if ( in_array( $post->ID, $this->processed_posts ) ) {
-					return $content; // Already processed this post in this request
+				if ( in_array( $post->ID, $this->processed_posts ) && $this->current_source_type !== 'acf' ) {
+					return $content;
 				}
-				$this->processed_posts[] = $post->ID;
+
+				if ( $this->current_source_type !== 'acf' ) {
+					$this->processed_posts[] = $post->ID;
+				}
 			}
 		}
 
