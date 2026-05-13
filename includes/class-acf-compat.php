@@ -34,6 +34,16 @@ class OILM_ACF_Compat {
 			return $value;
 		}
 
+		// Skip processing for user-excluded ACF fields (used in nav menus, etc.)
+		$settings = get_option( 'oilm_settings' );
+		if ( ! empty( $settings['exclude_acf_fields'] ) && is_array( $settings['exclude_acf_fields'] ) ) {
+			$field_name = isset( $field['name'] ) ? $field['name'] : '';
+			$field_key  = isset( $field['key'] ) ? $field['key'] : '';
+			if ( in_array( $field_name, $settings['exclude_acf_fields'], true ) || in_array( $field_key, $settings['exclude_acf_fields'], true ) ) {
+				return $value;
+			}
+		}
+
 		if ( is_string( $value ) ) {
 			if ( '' === trim( $value ) ) {
 				return $value;

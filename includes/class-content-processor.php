@@ -102,15 +102,18 @@ class OILM_Content_Processor {
             $tag_exclusions = array_merge( $tag_exclusions, array('h1', 'h2', 'h3', 'h4', 'h5', 'h6') );
         }
 
-        // 2. Class/ID exclusions for headers and navbars
+        // 2. Class/ID exclusions for headers, navbars, sub-menus and mega menus
         $extra_exclusions = array(
             '.navbar', '.site-header', '.main-navigation', '.navigation', 
-            '.menu-container', '#header', '#nav', '.elementor-location-header'
+            '.menu-container', '.sub-menu', '.children', '.menu-item-has-children',
+            '.page_item_has_children', '#header', '#nav', '.elementor-location-header'
         );
 
         if ( isset( $this->settings['exclude_elements'] ) && is_array( $this->settings['exclude_elements'] ) ) {
             $extra_exclusions = array_merge( $extra_exclusions, $this->settings['exclude_elements'] );
         }
+
+
 
         // Build XPath: Only select text nodes that are NOT children of the excluded tags or classes
         $query = $this->build_exclusion_xpath( $tag_exclusions, $extra_exclusions );

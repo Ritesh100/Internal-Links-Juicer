@@ -28,6 +28,7 @@ class OILM_Settings {
 		add_settings_field( 'exclude_headings', __( 'Exclude Headings', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_headings', 'desc' => 'Do not add links inside H1-H6 tags.' ) );
 		add_settings_field( 'exclude_existing_links', __( 'Exclude Existing Links', 'op-internal-link-manager' ), array( $this, 'render_checkbox' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings', array( 'id' => 'exclude_existing_links', 'desc' => 'Do not add links inside existing anchor tags.' ) );
 		add_settings_field( 'exclude_elements', __( 'Exclude Specific HTML Elements', 'op-internal-link-manager' ), array( $this, 'render_exclude_elements' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings' );
+		add_settings_field( 'exclude_acf_fields', __( 'Exclude ACF Fields', 'op-internal-link-manager' ), array( $this, 'render_exclude_acf_fields' ), 'oilm_settings_exclusions', 'oilm_exclusions_settings' );
 
 		// Advanced Tab
 		add_settings_section( 'oilm_advanced_settings', __( 'Advanced Configuration', 'op-internal-link-manager' ), array( $this, 'advanced_settings_cb' ), 'oilm_settings_advanced' );
@@ -52,7 +53,7 @@ class OILM_Settings {
 					$settings[ $field ] = 0;
 				}
 
-				if ( in_array( $field, array( 'enabled_post_types', 'exclude_elements' ), true ) ) {
+				if ( in_array( $field, array( 'enabled_post_types', 'exclude_elements', 'exclude_acf_fields' ), true ) ) {
 					$settings[ $field ] = array();
 				}
 			}
@@ -114,7 +115,20 @@ class OILM_Settings {
 				}
 				break;
 
-				case 'exclude_post_ids':
+				case 'exclude_acf_fields':
+				if ( is_string( $value ) ) {
+					$lines = explode( "\n", wp_unslash( $value ) );
+					$lines = array_map( 'trim', $lines );
+					$lines = array_filter( $lines, function( $l ) {
+						return '' !== $l;
+					} );
+					$settings[ $key ] = array_values( array_map( 'sanitize_text_field', $lines ) );
+				} else {
+					$settings[ $key ] = array();
+				}
+				break;
+
+			case 'exclude_post_ids':
 					$settings[ $key ] = sanitize_text_field( wp_unslash( $value ) );
 					break;
 			}
@@ -146,6 +160,7 @@ class OILM_Settings {
 			'process_comments' => 0,
 			'exclude_post_ids' => '',
 			'exclude_elements' => array(),
+			'exclude_acf_fields' => array(),
 			'enable_pluralization' => 0,
 			'first_occurrence_only' => 0,
 		);
@@ -155,7 +170,7 @@ class OILM_Settings {
 		return array(
 			'general' => array( 'enable_plugin', 'global_max_links', 'global_max_url_links', 'link_css_class', 'default_new_tab', 'default_nofollow', 'global_override_rule_attributes' ),
 			'targeting' => array( 'enabled_post_types', 'process_excerpts', 'process_comments', 'enable_elementor' ),
-			'exclusions' => array( 'exclude_post_ids', 'exclude_headings', 'exclude_existing_links', 'exclude_elements' ),
+			'exclusions' => array( 'exclude_post_ids', 'exclude_headings', 'exclude_existing_links', 'exclude_elements', 'exclude_acf_fields' ),
 			'advanced' => array( 'enable_pluralization', 'first_occurrence_only', 'debug_mode', 'remove_data_on_uninstall' ),
 		);
 	}
@@ -237,6 +252,14 @@ class OILM_Settings {
 		
 		echo '<textarea name="oilm_settings[exclude_elements]" rows="5" class="large-text">' . esc_textarea( implode( "\n", $excluded ) ) . '</textarea>';
 		echo '<p class="description">' . __( 'One per line. Supports element names (e.g. <code>header</code>, <code>nav</code>, <code>footer</code>), class selectors (e.g. <code>.widget-title</code>), and ID selectors (e.g. <code>#sidebar</code>).', 'op-internal-link-manager' ) . '</p>';
+	}
+
+	public function render_exclude_acf_fields() {
+		$options = get_option( 'oilm_settings' );
+		$excluded = isset( $options['exclude_acf_fields'] ) && is_array( $options['exclude_acf_fields'] ) ? $options['exclude_acf_fields'] : array();
+
+		echo '<textarea name="oilm_settings[exclude_acf_fields]" rows="5" class="large-text">' . esc_textarea( implode( "\n", $excluded ) ) . '</textarea>';
+		echo '<p class="description">' . __( 'One per line. Enter ACF field names (e.g. <code>menu_subtitle</code>) or field keys (e.g. <code>field_abc123</code>) that should NOT be processed for internal links. Useful when ACF fields are used in navigation menus.', 'op-internal-link-manager' ) . '</p>';
 	}
 
 	public function render_page() {
