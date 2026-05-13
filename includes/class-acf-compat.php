@@ -26,15 +26,35 @@ class OILM_ACF_Compat {
 	}
 
 	public function process_acf_field( $value, $post_id, $field ) {
-		if ( empty( $value ) || ! is_string( $value ) ) {
-			return $value;
-		}
-		
 		// Avoid running in the backend to preserve raw data for editors
 		if ( is_admin() && ! wp_doing_ajax() ) {
 			return $value;
 		}
 
-		return $this->processor->process_content( $value );
+		if ( is_string( $value ) ) {
+			if ( '' === trim( $value ) ) {
+				return $value;
+			}
+			return $this->processor->process_content( $value );
+		}
+
+		if ( is_array( $value ) ) {
+			return $this->process_array_value( $value, $post_id, $field );
+		}
+
+		return $value;
+	}
+
+	private function process_array_value( $value, $post_id, $field ) {
+		foreach ( $value as $key => $val ) {
+			if ( is_string( $val ) ) {
+				if ( '' !== trim( $val ) ) {
+					$value[ $key ] = $this->processor->process_content( $val );
+				}
+			} elseif ( is_array( $val ) ) {
+				$value[ $key ] = $this->process_array_value( $val, $post_id, $field );
+			}
+		}
+		return $value;
 	}
 }

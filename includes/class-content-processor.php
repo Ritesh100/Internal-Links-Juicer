@@ -53,9 +53,10 @@ class OILM_Content_Processor {
 
 		// Check post type restrictions if in main query
 		if ( in_the_loop() && is_main_query() ) {
+			// Skip post type restriction for ACF fields — they should process regardless
 			$post_type = get_post_type();
 			$enabled_types = isset( $this->settings['enabled_post_types'] ) ? $this->settings['enabled_post_types'] : array();
-			if ( ! in_array( $post_type, $enabled_types ) ) {
+			if ( ! in_array( $post_type, $enabled_types ) && $this->current_source_type !== 'acf' ) {
 				return $content;
 			}
 			
