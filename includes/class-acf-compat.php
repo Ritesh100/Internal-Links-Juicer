@@ -21,10 +21,8 @@ class OILM_ACF_Compat {
 			return;
 		}
 
-		// Process ACF fields
-		add_filter( 'acf/format_value/type=wysiwyg', array( $this, 'process_acf_field' ), 99, 3 );
-		add_filter( 'acf/format_value/type=text', array( $this, 'process_acf_field' ), 99, 3 );
-		add_filter( 'acf/format_value/type=textarea', array( $this, 'process_acf_field' ), 99, 3 );
+		// Process all ACF field types (accordion, text, textarea, wysiwyg, email, url, etc.)
+		add_filter( 'acf/format_value', array( $this, 'process_acf_field' ), 99, 3 );
 	}
 
 	public function process_acf_field( $value, $post_id, $field ) {
