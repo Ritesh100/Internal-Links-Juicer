@@ -127,7 +127,7 @@ class OILM_Content_Processor {
 		}
 
 		$global_max = isset( $this->settings['global_max_links'] ) ? absint( $this->settings['global_max_links'] ) : 0;
-		$global_url_max = isset( $this->settings['global_max_url_links'] ) ? absint( $this->settings['global_max_url_links'] ) : 0;
+		$global_url_max = max( 1, isset( $this->settings['global_max_url_links'] ) ? absint( $this->settings['global_max_url_links'] ) : 1 );
 		$first_occurrence_only = isset( $this->settings['first_occurrence_only'] ) && $this->settings['first_occurrence_only'];
 		$enable_pluralization = isset( $this->settings['enable_pluralization'] ) && $this->settings['enable_pluralization'];
 		$global_override_rule_attributes = ! empty( $this->settings['global_override_rule_attributes'] );
@@ -162,11 +162,9 @@ class OILM_Content_Processor {
 					continue;
 				}
 
-				// Check global url limits
-				if ( $global_url_max > 0 ) {
-					$url_count = isset($this->url_links_count[$rule['url']]) ? $this->url_links_count[$rule['url']] : 0;
-					if ( $url_count >= $global_url_max ) continue;
-				}
+				// Check global url limits (minimum 1 to prevent duplicate links to same URL)
+				$url_count = isset($this->url_links_count[$rule['url']]) ? $this->url_links_count[$rule['url']] : 0;
+				if ( $url_count >= $global_url_max ) continue;
 				
 				// Check rule limits
 				$rule_max = absint($rule['max_links_per_page']);

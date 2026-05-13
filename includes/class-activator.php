@@ -96,7 +96,7 @@ class OILM_Activator {
 	private static function set_default_options() {
 		$default_settings = array(
 			'global_max_links' => 0,
-			'global_max_url_links' => 0,
+			'global_max_url_links' => 1,
 			'link_css_class' => 'op-internal-link',
 			'enable_plugin' => 1,
 			'enabled_post_types' => array('post', 'page'),
