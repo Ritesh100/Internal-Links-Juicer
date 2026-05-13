@@ -73,15 +73,49 @@ class OILM_Rules_List_Table extends WP_List_Table {
 		);
 	}
 
+	public function get_bulk_actions() {
+		return array(
+			'bulk_delete' => 'Delete',
+		);
+	}
+
+	public function process_bulk_action() {
+		if ( 'bulk_delete' !== $this->current_action() ) {
+			return;
+		}
+
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bulk-rules' ) ) {
+			return;
+		}
+
+		$rule_ids = isset( $_GET['rule'] ) ? array_map( 'absint', $_GET['rule'] ) : array();
+		if ( empty( $rule_ids ) ) {
+			return;
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'oilm_rules';
+		$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
+
+		foreach ( $rule_ids as $rule_id ) {
+			$wpdb->delete( $table_name, array( 'id' => $rule_id ) );
+			$wpdb->delete( $locations_table_name, array( 'rule_id' => $rule_id ) );
+		}
+
+		delete_transient( 'oilm_active_rules' );
+
+		wp_redirect( admin_url( 'admin.php?page=op-internal-link-manager&message=deleted' ) );
+		exit;
+	}
+
 	protected function column_keywords( $item ) {
 		$edit_nonce = wp_create_nonce( 'oilm_edit_rule_' . $item['id'] );
-		$delete_nonce = wp_create_nonce( 'oilm_delete_rule_' . $item['id'] );
 		
 		$page = $_REQUEST['page'];
 		
 		$actions = array(
 			'edit'   => sprintf( '<a href="?page=%s&action=%s&rule=%s&_wpnonce=%s">Edit</a>', esc_attr( $page ), 'edit', absint( $item['id'] ), $edit_nonce ),
-			'delete' => sprintf( '<a href="?page=%s&action=%s&rule=%s&_wpnonce=%s" onclick="return confirm(\'Are you sure?\')">Delete</a>', esc_attr( $page ), 'delete', absint( $item['id'] ), $delete_nonce ),
+			'delete' => sprintf( '<a href="%s" onclick="return confirm(\'Are you sure?\')">Delete</a>', wp_nonce_url( admin_url( 'admin-post.php?action=oilm_delete_rule&rule=' . $item['id'] ), 'oilm_delete_rule_' . $item['id'] ) ),
 		);
 
 		return sprintf( '%1$s %2$s', esc_html( $item['keywords'] ), $this->row_actions( $actions ) );
@@ -153,6 +187,7 @@ class OILM_Link_Rules {
 
 	private function render_list() {
 		$list_table = new OILM_Rules_List_Table();
+		$list_table->process_bulk_action();
 		$list_table->prepare_items();
 		?>
 		<div class="wrap oilm-modern-wrap">
