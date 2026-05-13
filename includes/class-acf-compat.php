@@ -92,8 +92,46 @@ class OILM_ACF_Compat {
 
 		$xpath = new DOMXPath( $dom );
 
+		// Build XPath queries for all excluded areas (tags, classes, IDs)
+		$exclusion_queries = array();
+
+		// 1. Structural tag exclusions
 		foreach ( array( 'header', 'nav', 'footer' ) as $tag ) {
-			$links = $xpath->query( "//{$tag}//a[contains(@class, 'op-internal-link')]" );
+			$exclusion_queries[] = "//{$tag}//a[contains(@class, 'op-internal-link')]";
+		}
+
+		// 2. Common class/ID exclusions matching parse_and_replace in content processor
+		$extra_exclusions = array(
+			'.navbar', '.site-header', '.main-navigation', '.navigation',
+			'.menu-container', '.sub-menu', '.children', '.menu-item-has-children',
+			'.page_item_has_children', '#header', '#nav', '.elementor-location-header'
+		);
+
+		// 3. User-configured exclusions from settings
+		$settings = get_option( 'oilm_settings' );
+		if ( isset( $settings['exclude_elements'] ) && is_array( $settings['exclude_elements'] ) ) {
+			$extra_exclusions = array_merge( $extra_exclusions, $settings['exclude_elements'] );
+		}
+
+		foreach ( $extra_exclusions as $excl ) {
+			$excl = trim( $excl );
+			if ( '' === $excl ) {
+				continue;
+			}
+			if ( $excl[0] === '.' ) {
+				$class = substr( $excl, 1 );
+				$exclusion_queries[] = "//*[contains(concat(' ', normalize-space(@class), ' '), ' $class ')]//a[contains(@class, 'op-internal-link')]";
+			} elseif ( $excl[0] === '#' ) {
+				$id = substr( $excl, 1 );
+				$exclusion_queries[] = "//*[@id='$id']//a[contains(@class, 'op-internal-link')]";
+			} else {
+				$exclusion_queries[] = "//{$excl}//a[contains(@class, 'op-internal-link')]";
+			}
+		}
+
+		// Strip matching links in all excluded areas
+		foreach ( $exclusion_queries as $query ) {
+			$links = $xpath->query( $query );
 			foreach ( $links as $link ) {
 				$text = $link->textContent;
 				$link->parentNode->replaceChild( $dom->createTextNode( $text ), $link );
