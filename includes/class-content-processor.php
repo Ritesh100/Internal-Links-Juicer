@@ -107,7 +107,7 @@ class OILM_Content_Processor {
 		$xpath = new DOMXPath( $dom );
 		
 		// Find text nodes that are NOT inside exclusions
-		$exclusions = array('a', 'script', 'style', 'code', 'pre', 'textarea', 'button', 'iframe', 'header', 'nav');
+		$exclusions = array('a', 'script', 'style', 'code', 'pre', 'textarea', 'button', 'iframe', 'header', 'nav', 'footer');
 		
 		if ( isset( $this->settings['exclude_headings'] ) && $this->settings['exclude_headings'] ) {
 			$exclusions = array_merge( $exclusions, array('h1', 'h2', 'h3', 'h4', 'h5', 'h6') );
