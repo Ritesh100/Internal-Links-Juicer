@@ -7,7 +7,7 @@ class OILM_Content_Processor {
     private $page_links_count = 0;
     private $url_links_count = array();
     private $keyword_links_count = array();
-    private $processed_posts = array(); // Prevent infinite loops
+    private $processed_posts = array();
     private $current_post_id = 0;
     private $current_post_url = '';
     private $current_source_type = 'content';
@@ -64,11 +64,9 @@ class OILM_Content_Processor {
                         return $content;
                     }
                 }
-
                 if ( in_array( $post->ID, $this->processed_posts ) && $this->current_source_type !== 'acf' ) {
                     return $content;
                 }
-
                 if ( $this->current_source_type !== 'acf' ) {
                     $this->processed_posts[] = $post->ID;
                 }
@@ -94,31 +92,27 @@ class OILM_Content_Processor {
 
         $xpath = new DOMXPath( $dom );
         
-        // 1. Expanded structural tag exclusions
+        // 1. Structural exclusions (Tags and standard areas to ignore)
         $tag_exclusions = array(
             'a', 'script', 'style', 'code', 'pre', 'textarea', 'button', 
-            'iframe', 'header', 'nav', 'footer', 'aside', 'noscript'
+            'iframe', 'header', 'nav', 'footer', 'aside', 'noscript', 'img'
         );
         
         if ( isset( $this->settings['exclude_headings'] ) && $this->settings['exclude_headings'] ) {
             $tag_exclusions = array_merge( $tag_exclusions, array('h1', 'h2', 'h3', 'h4', 'h5', 'h6') );
         }
 
-        // 2. Class/ID exclusions to target Navbars specifically
+        // 2. Class/ID exclusions for headers and navbars
         $extra_exclusions = array(
-            '.navbar', 
-            '.site-header', 
-            '.main-navigation', 
-            '.navigation', 
-            '.menu-container', 
-            '#header', 
-            '#nav'
+            '.navbar', '.site-header', '.main-navigation', '.navigation', 
+            '.menu-container', '#header', '#nav', '.elementor-location-header'
         );
 
         if ( isset( $this->settings['exclude_elements'] ) && is_array( $this->settings['exclude_elements'] ) ) {
             $extra_exclusions = array_merge( $extra_exclusions, $this->settings['exclude_elements'] );
         }
 
+        // Build XPath: Only select text nodes that are NOT children of the excluded tags or classes
         $query = $this->build_exclusion_xpath( $tag_exclusions, $extra_exclusions );
         $text_nodes = $xpath->query( $query );
 
@@ -133,8 +127,6 @@ class OILM_Content_Processor {
         $first_occurrence_only = isset( $this->settings['first_occurrence_only'] ) && $this->settings['first_occurrence_only'];
         $enable_pluralization = isset( $this->settings['enable_pluralization'] ) && $this->settings['enable_pluralization'];
         $global_override_rule_attributes = ! empty( $this->settings['global_override_rule_attributes'] );
-        $default_new_tab = ! empty( $this->settings['default_new_tab'] );
-        $default_nofollow = ! empty( $this->settings['default_nofollow'] );
         $link_css_class = $this->get_link_css_class();
 
         $updates_made = false;
@@ -147,19 +139,16 @@ class OILM_Content_Processor {
             }
 
             $text = $node->nodeValue;
-            if ( trim( $text ) === '' ) continue;
+            if ( strlen(trim( $text )) < 2 ) continue;
 
             foreach ( $this->rules as $rule ) {
                 if ( in_array( rtrim( $rule['url'], '/' ), $existing_hrefs ) ) continue;
 
-                $url_count = isset($this->url_links_count[$rule['url']]) ? $this->url_links_count[$rule['url']] : 0;
+                $url_count = $this->url_links_count[$rule['url']] ?? 0;
                 if ( $url_count >= $global_url_max ) continue;
                 
                 $rule_max = absint($rule['max_links_per_page']);
-                if ( $rule_max > 0 ) {
-                    $rule_count = isset($this->keyword_links_count[$rule['id']]) ? $this->keyword_links_count[$rule['id']] : 0;
-                    if ( $rule_count >= $rule_max ) continue;
-                }
+                if ( $rule_max > 0 && ($this->keyword_links_count[$rule['id']] ?? 0) >= $rule_max ) continue;
 
                 if ( $this->current_post_url && rtrim($this->current_post_url, '/') === rtrim($rule['url'], '/') ) continue;
 
@@ -167,57 +156,49 @@ class OILM_Content_Processor {
                     if ( empty( $keyword ) ) continue;
 
                     $kw_max = absint($rule['max_uses_per_keyword']);
-                    if ( $kw_max > 0 ) {
-                        $kw_key = $rule['id'] . '_' . $keyword;
-                        $kw_count = isset($this->keyword_links_count[$kw_key]) ? $this->keyword_links_count[$kw_key] : 0;
-                        if ( $kw_count >= $kw_max ) continue;
-                    }
+                    $kw_key = $rule['id'] . '_' . $keyword;
+                    if ( $kw_max > 0 && ($this->keyword_links_count[$kw_key] ?? 0) >= $kw_max ) continue;
 
                     $escaped_kw = preg_quote( $keyword, '/' );
                     $plural_suffix = $enable_pluralization ? '(?:s|es)?' : '';
-
-                    if ( $rule['is_exact_match'] ) {
-                        $pattern = '/\b(' . $escaped_kw . $plural_suffix . ')\b/u';
-                    } else {
-                        $pattern = '/\b(' . $escaped_kw . $plural_suffix . ')\b/iu';
-                    }
+                    $pattern = $rule['is_exact_match'] ? '/\b(' . $escaped_kw . $plural_suffix . ')\b/u' : '/\b(' . $escaped_kw . $plural_suffix . ')\b/iu';
 
                     if ( preg_match( $pattern, $text, $matches ) ) {
                         $matched_text = $matches[1];
-                        $open_new_tab = $global_override_rule_attributes ? $default_new_tab : ( ! empty( $rule['open_new_tab'] ) || $default_new_tab );
-                        $add_nofollow = $global_override_rule_attributes ? $default_nofollow : ( ! empty( $rule['is_nofollow'] ) || $default_nofollow );
+                        
+                        $open_new_tab = $global_override_rule_attributes ? !empty($this->settings['default_new_tab']) : ( ! empty( $rule['open_new_tab'] ) );
+                        $add_nofollow = $global_override_rule_attributes ? !empty($this->settings['default_nofollow']) : ( ! empty( $rule['is_nofollow'] ) );
+                        
                         $target = $open_new_tab ? ' target="_blank"' : '';
+                        $rel_parts = [];
+                        if ($add_nofollow) $rel_parts[] = 'nofollow';
+                        if ($rule['is_sponsored']) $rel_parts[] = 'sponsored';
+                        if ($open_new_tab) $rel_parts[] = 'noopener';
+                        $rel = !empty($rel_parts) ? ' rel="' . implode(' ', $rel_parts) . '"' : '';
                         
-                        $rel_arr = array();
-                        if ( $add_nofollow ) $rel_arr[] = 'nofollow';
-                        if ( $rule['is_sponsored'] ) $rel_arr[] = 'sponsored';
-                        if ( strpos($target, '_blank') !== false ) $rel_arr[] = 'noopener';
-                        
-                        $rel = !empty($rel_arr) ? ' rel="' . implode(' ', $rel_arr) . '"' : '';
                         $title = !empty($rule['title_attr']) ? ' title="' . esc_attr($rule['title_attr']) . '"' : '';
                         $class = $link_css_class ? ' class="' . esc_attr( $link_css_class ) . '"' : '';
                         
                         $link_html = '<a href="' . esc_url($rule['url']) . '"' . $class . $target . $rel . $title . '>' . htmlspecialchars($matched_text, ENT_QUOTES, 'UTF-8') . '</a>';
 
+                        // Replacement
                         $new_text = preg_replace( $pattern, $link_html, $text, 1 );
 
                         if ( $new_text !== $text ) {
                             $fragment = $dom->createDocumentFragment();
-                            // Standard XML append
-                            $fragment->appendXML( $new_text );
-                            $node->parentNode->replaceChild( $fragment, $node );
-                            
-                            $this->page_links_count++;
-                            $this->url_links_count[$rule['url']] = ($this->url_links_count[$rule['url']] ?? 0) + 1;
-                            
-                            $kw_key = $rule['id'] . '_' . $keyword;
-                            $this->keyword_links_count[$kw_key] = ($this->keyword_links_count[$kw_key] ?? 0) + 1;
-                            $this->keyword_links_count[$rule['id']] = ($this->keyword_links_count[$rule['id']] ?? 0) + 1;
+                            if ( @$fragment->appendXML( $new_text ) ) {
+                                $node->parentNode->replaceChild( $fragment, $node );
+                                
+                                $this->page_links_count++;
+                                $this->url_links_count[$rule['url']] = ($this->url_links_count[$rule['url']] ?? 0) + 1;
+                                $this->keyword_links_count[$kw_key] = ($this->keyword_links_count[$kw_key] ?? 0) + 1;
+                                $this->keyword_links_count[$rule['id']] = ($this->keyword_links_count[$rule['id']] ?? 0) + 1;
 
-                            $this->add_rule_hit( $rules_hit, $rule['id'] );
-                            $this->add_location_hit( $location_hits, $rule['id'], $keyword );
-                            $updates_made = true;
-                            break 2; 
+                                $this->add_rule_hit( $rules_hit, $rule['id'] );
+                                $this->add_location_hit( $location_hits, $rule['id'], $keyword );
+                                $updates_made = true;
+                                break 2; 
+                            }
                         }
                     }
                 }
@@ -227,7 +208,6 @@ class OILM_Content_Processor {
         if ( $updates_made ) {
             $this->update_stats( $rules_hit );
             $this->update_location_stats( $location_hits );
-
             $body = $dom->getElementsByTagName('div')->item(0);
             if ( $body ) {
                 $output = '';
@@ -243,47 +223,35 @@ class OILM_Content_Processor {
 
     private function build_exclusion_xpath( $tag_exclusions, $extra_exclusions ) {
         $conditions = array();
-
         foreach ( $tag_exclusions as $tag ) {
-            $tag = trim( $tag );
-            if ( '' === $tag ) continue;
             $conditions[] = "not(ancestor::$tag)";
         }
-
         foreach ( $extra_exclusions as $excl ) {
             $excl = trim( $excl );
             if ( '' === $excl ) continue;
-
-            $first = $excl[0];
-            if ( '.' === $first ) {
+            if ( $excl[0] === '.' ) {
                 $class = substr( $excl, 1 );
-                // Strict class matching: checks for class within space-separated list
                 $conditions[] = "not(ancestor::*[contains(concat(' ', normalize-space(@class), ' '), ' $class ')])";
-            } elseif ( '#' === $first ) {
+            } elseif ( $excl[0] === '#' ) {
                 $id = substr( $excl, 1 );
                 $conditions[] = "not(ancestor::*[@id='$id'])";
             } else {
                 $conditions[] = "not(ancestor::$excl)";
             }
         }
-
-        return '//text()[' . implode( ' and ', $conditions ) . ']';
+        // CRITICAL: only select text nodes that are actually inside elements, not attributes
+        return "//text()[" . implode( ' and ', $conditions ) . "]";
     }
 
     private function get_link_css_class() {
-        $class_value = isset( $this->settings['link_css_class'] ) ? $this->settings['link_css_class'] : 'op-internal-link';
-        $class_value = is_string( $class_value ) ? $class_value : '';
-        $classes = preg_split( '/\s+/', trim( $class_value ) );
-        $classes = array_filter( array_map( 'sanitize_html_class', $classes ) );
-
-        return implode( ' ', $classes );
+        $class_value = $this->settings['link_css_class'] ?? 'op-internal-link';
+        $classes = preg_split( '/\s+/', trim( (string)$class_value ) );
+        return implode( ' ', array_filter( array_map( 'sanitize_html_class', $classes ) ) );
     }
 
     private function add_rule_hit( &$rules_hit, $rule_id ) {
         $rule_id = absint( $rule_id );
-        if ( ! isset( $rules_hit[ $rule_id ] ) ) {
-            $rules_hit[ $rule_id ] = array('count' => 0);
-        }
+        if ( ! isset( $rules_hit[ $rule_id ] ) ) $rules_hit[ $rule_id ] = array('count' => 0);
         $rules_hit[ $rule_id ]['count']++;
     }
 
@@ -292,79 +260,37 @@ class OILM_Content_Processor {
         $this->current_post_id = $post ? absint( $post->ID ) : 0;
         $this->current_post_url = $this->current_post_id ? get_permalink( $this->current_post_id ) : '';
         $this->current_source_type = 'content';
-
-        $current_filter = current_filter();
-        $map = [
-            'get_the_excerpt' => 'excerpt',
-            'comment_text' => 'comment',
-            'elementor' => 'elementor',
-            'acf' => 'acf',
-            'woocommerce' => 'woocommerce',
-            'product' => 'woocommerce',
-            'nav_menu' => 'nav_menu',
-            'widget' => 'widget'
-        ];
-
-        foreach($map as $key => $val) {
-            if (strpos((string)$current_filter, $key) !== false) {
-                $this->current_source_type = $val;
-                break;
-            }
-        }
+        $filter = current_filter();
+        $map = ['get_the_excerpt' => 'excerpt', 'comment_text' => 'comment', 'acf' => 'acf', 'woocommerce' => 'woocommerce'];
+        foreach($map as $key => $val) { if (strpos((string)$filter, $key) !== false) { $this->current_source_type = $val; break; } }
     }
 
     private function add_location_hit( &$location_hits, $rule_id, $keyword ) {
         if ( ! $this->current_post_id ) return;
-        $rule_id = absint( $rule_id );
-        $key = $rule_id . ':' . $this->current_post_id . ':' . $this->current_source_type;
-
+        $key = absint($rule_id) . ':' . $this->current_post_id . ':' . $this->current_source_type;
         if ( ! isset( $location_hits[ $key ] ) ) {
-            $location_hits[ $key ] = array(
-                'rule_id'     => $rule_id,
-                'post_id'     => $this->current_post_id,
-                'source_type' => $this->current_source_type,
-                'count'       => 0,
-                'keyword'     => $keyword,
-            );
+            $location_hits[ $key ] = array('rule_id' => $rule_id, 'post_id' => $this->current_post_id, 'source_type' => $this->current_source_type, 'count' => 0, 'keyword' => $keyword);
         }
         $location_hits[ $key ]['count']++;
-        $location_hits[ $key ]['keyword'] = $keyword;
     }
 
     private function update_stats( $rules_hit ) {
         if ( empty( $rules_hit ) ) return;
         global $wpdb;
-        $rules_table_name = $wpdb->prefix . 'oilm_rules';
-        $locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
-
+        $table = $wpdb->prefix . 'oilm_rules';
+        $loc_table = $wpdb->prefix . 'oilm_insertion_locations';
         foreach ( $rules_hit as $rule_id => $hit ) {
-            $count = absint( $hit['count'] );
-            $existing_other_count = 0;
-            if ( $this->current_post_id ) {
-                $existing_other_count = (int) $wpdb->get_var( $wpdb->prepare(
-                    "SELECT COALESCE(SUM(insert_count), 0) FROM $locations_table_name WHERE rule_id = %d AND NOT (post_id = %d AND source_type = %s)",
-                    $rule_id, $this->current_post_id, $this->current_source_type
-                ) );
-            }
-            $wpdb->query( $wpdb->prepare( 
-                "UPDATE $rules_table_name SET insert_count = %d, last_inserted_at = CURRENT_TIMESTAMP WHERE id = %d",
-                $existing_other_count + $count, $rule_id
-            ) );
+            $other_count = (int) $wpdb->get_var( $wpdb->prepare("SELECT COALESCE(SUM(insert_count), 0) FROM $loc_table WHERE rule_id = %d AND NOT (post_id = %d AND source_type = %s)", $rule_id, $this->current_post_id, $this->current_source_type) );
+            $wpdb->query( $wpdb->prepare("UPDATE $table SET insert_count = %d, last_inserted_at = CURRENT_TIMESTAMP WHERE id = %d", $other_count + $hit['count'], $rule_id) );
         }
     }
 
     private function update_location_stats( $location_hits ) {
         if ( empty( $location_hits ) ) return;
         global $wpdb;
-        $table_name = $wpdb->prefix . 'oilm_insertion_locations';
-
+        $table = $wpdb->prefix . 'oilm_insertion_locations';
         foreach ( $location_hits as $hit ) {
-            $wpdb->query( $wpdb->prepare(
-                "INSERT INTO $table_name (rule_id, post_id, source_type, insert_count, last_keyword, first_inserted_at, last_inserted_at)
-                VALUES (%d, %d, %s, %d, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                ON DUPLICATE KEY UPDATE insert_count = VALUES(insert_count), last_keyword = VALUES(last_keyword), last_inserted_at = CURRENT_TIMESTAMP",
-                $hit['rule_id'], $hit['post_id'], $hit['source_type'], $hit['count'], $hit['keyword']
-            ) );
+            $wpdb->query( $wpdb->prepare("INSERT INTO $table (rule_id, post_id, source_type, insert_count, last_keyword, first_inserted_at, last_inserted_at) VALUES (%d, %d, %s, %d, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) ON DUPLICATE KEY UPDATE insert_count = VALUES(insert_count), last_keyword = VALUES(last_keyword), last_inserted_at = CURRENT_TIMESTAMP", $hit['rule_id'], $hit['post_id'], $hit['source_type'], $hit['count'], $hit['keyword']) );
         }
     }
 }
