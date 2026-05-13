@@ -89,6 +89,18 @@ class OILM_Plugin {
 
 		$acf_compat = new OILM_ACF_Compat( $processor );
 		$acf_compat->init();
+
+		// Process navigation menus
+		add_filter( 'wp_nav_menu_items', array( $processor, 'process_content' ), 99 );
+		add_filter( 'render_block_core/navigation', array( $processor, 'process_content' ), 99 );
+
+		// Process widget content (footer, sidebar, etc.)
+		add_filter( 'widget_text', array( $processor, 'process_content' ), 99 );
+		add_filter( 'widget_block_content', array( $processor, 'process_content' ), 99 );
+
+		// Process rendered blocks in header/footer areas
+		add_filter( 'render_block_core/site-title', array( $processor, 'process_content' ), 99 );
+		add_filter( 'render_block_core/site-tagline', array( $processor, 'process_content' ), 99 );
 	}
 
 	public function run() {

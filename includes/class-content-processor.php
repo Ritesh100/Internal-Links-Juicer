@@ -310,6 +310,10 @@ class OILM_Content_Processor {
 			$this->current_source_type = 'acf';
 		} elseif ( strpos( (string) $current_filter, 'woocommerce' ) !== false || strpos( (string) $current_filter, 'product' ) !== false ) {
 			$this->current_source_type = 'woocommerce';
+		} elseif ( strpos( (string) $current_filter, 'nav_menu' ) !== false || strpos( (string) $current_filter, 'render_block_core/navigation' ) !== false ) {
+			$this->current_source_type = 'nav_menu';
+		} elseif ( strpos( (string) $current_filter, 'widget_text' ) !== false || strpos( (string) $current_filter, 'widget_block' ) !== false ) {
+			$this->current_source_type = 'widget';
 		}
 	}
 
