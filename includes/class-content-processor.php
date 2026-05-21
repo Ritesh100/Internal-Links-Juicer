@@ -147,7 +147,7 @@ class OILM_Content_Processor {
         for ( $node_idx = 0; $node_idx < count( $text_nodes ); $node_idx++ ) {
             $node = $text_nodes[$node_idx];
 
-            if ( ( $first_occurrence_only && $this->page_links_count >= 1 ) || ( $global_max > 0 && $this->page_links_count >= $global_max ) ) {
+            if ( $global_max > 0 && $this->page_links_count >= $global_max ) {
                 break;
             }
 
@@ -161,6 +161,7 @@ class OILM_Content_Processor {
 
                 $url_count = $this->url_links_count[$rule['url']] ?? 0;
                 if ( $url_count >= $global_url_max ) continue;
+                if ( $first_occurrence_only && $url_count >= 1 ) continue;
                 
                 $rule_max = absint($rule['max_links_per_page']);
                 if ( $rule_max > 0 && ($this->keyword_links_count[$rule['id']] ?? 0) >= $rule_max ) continue;
