@@ -46,10 +46,23 @@ class OILM_GitHub_Updater {
 			return $transient;
 		}
 
-		$remote = $this->get_remote_plugin_data( true );
+		$force_refresh = false;
+		if ( isset( $_GET['force-check'] ) || isset( $_GET['forcecheck'] ) ) {
+			$force_refresh = true;
+		}
 
-		if ( empty( $remote['version'] ) || ! version_compare( $remote['version'], $this->installed_version(), '>' ) ) {
-			return $this->mark_as_current( $transient, isset( $remote['version'] ) ? $remote['version'] : '' );
+		$remote = $this->get_remote_plugin_data( $force_refresh );
+
+		if ( empty( $remote['version'] ) ) {
+			return $transient;
+		}
+
+		if ( ! version_compare( $remote['version'], $this->installed_version(), '>' ) ) {
+			return $this->mark_as_current( $transient, $remote['version'] );
+		}
+
+		if ( ! isset( $transient->response ) || ! is_array( $transient->response ) ) {
+			$transient->response = array();
 		}
 
 		$transient->response[ $this->plugin_basename ] = $this->update_payload( $remote );
@@ -74,7 +87,7 @@ class OILM_GitHub_Updater {
 			return $result;
 		}
 
-		$remote = $this->get_remote_plugin_data( true );
+		$remote = $this->get_remote_plugin_data( false );
 
 		if ( empty( $remote['version'] ) ) {
 			return $result;
@@ -102,21 +115,33 @@ class OILM_GitHub_Updater {
 			return $source;
 		}
 
+		global $wp_filesystem;
+
 		$target = trailingslashit( $remote_source ) . $this->plugin_slug;
 
 		if ( trailingslashit( $source ) === trailingslashit( $target ) ) {
 			return $source;
 		}
 
-		if ( is_dir( $target ) ) {
+		// Ensure the filesystem is initialized
+		if ( ! $wp_filesystem ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+			WP_Filesystem();
+		}
+
+		if ( ! $wp_filesystem ) {
 			return $source;
 		}
 
-		if ( ! rename( $source, $target ) ) {
-			return $source;
+		if ( $wp_filesystem->exists( $target ) ) {
+			$wp_filesystem->delete( $target, true );
 		}
 
-		return trailingslashit( $target );
+		if ( $wp_filesystem->move( $source, $target, true ) ) {
+			return trailingslashit( $target );
+		}
+
+		return $source;
 	}
 
 	public function download_private_package( $reply, $package, $upgrader, $hook_extra ) {
@@ -186,7 +211,6 @@ class OILM_GitHub_Updater {
 		$readme      = $this->remote_get( $this->raw_url( 'readme.txt' ) );
 
 		if ( ! $plugin_file ) {
-			set_site_transient( $this->cache_key, $defaults, $this->cache_ttl() );
 			return $defaults;
 		}
 
@@ -222,7 +246,9 @@ class OILM_GitHub_Updater {
 	}
 
 	private function mark_as_current( $transient, $remote_version ) {
-		unset( $transient->response[ $this->plugin_basename ] );
+		if ( isset( $transient->response ) && is_array( $transient->response ) ) {
+			unset( $transient->response[ $this->plugin_basename ] );
+		}
 
 		if ( ! isset( $transient->no_update ) || ! is_array( $transient->no_update ) ) {
 			$transient->no_update = array();
@@ -253,11 +279,20 @@ class OILM_GitHub_Updater {
 	}
 
 	private function remote_get( $url ) {
+		$headers = array();
+		if ( $this->github_token() ) {
+			$headers = $this->github_headers( 'application/vnd.github.raw' );
+		} else {
+			$headers = array(
+				'User-Agent' => 'OP-Internal-Link-Manager-Updater',
+			);
+		}
+
 		$response = wp_remote_get(
 			$url,
 			array(
 				'timeout' => 15,
-				'headers' => $this->github_headers( 'application/vnd.github.raw' ),
+				'headers' => $headers,
 			)
 		);
 
@@ -293,6 +328,16 @@ class OILM_GitHub_Updater {
 	}
 
 	private function raw_url( $path ) {
+		if ( ! $this->github_token() ) {
+			return sprintf(
+				'https://raw.githubusercontent.com/%s/%s/%s/%s',
+				$this->owner,
+				$this->repo,
+				$this->branch,
+				ltrim( $path, '/' )
+			);
+		}
+
 		return sprintf(
 			'%s/contents/%s?ref=%s',
 			$this->api_url,
