@@ -131,7 +131,6 @@ class OILM_Content_Processor {
             $existing_hrefs[] = rtrim( $anchor->nodeValue, '/' );
         }
 
-        $global_max = isset( $this->settings['global_max_links'] ) ? absint( $this->settings['global_max_links'] ) : 0;
         $global_url_max = max( 1, isset( $this->settings['global_max_url_links'] ) ? absint( $this->settings['global_max_url_links'] ) : 1 );
         $first_occurrence_only = isset( $this->settings['first_occurrence_only'] ) && $this->settings['first_occurrence_only'];
         $enable_pluralization = isset( $this->settings['enable_pluralization'] ) && $this->settings['enable_pluralization'];
@@ -146,10 +145,6 @@ class OILM_Content_Processor {
         // nodes (after a match replacement) are also processed
         for ( $node_idx = 0; $node_idx < count( $text_nodes ); $node_idx++ ) {
             $node = $text_nodes[$node_idx];
-
-            if ( $global_max > 0 && $this->page_links_count >= $global_max ) {
-                break;
-            }
 
             $text = $node->nodeValue;
             if ( strlen(trim( $text )) < 2 ) continue;
