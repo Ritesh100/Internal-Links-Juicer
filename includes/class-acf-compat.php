@@ -44,31 +44,27 @@ class OILM_ACF_Compat {
 			}
 		}
 
-		if ( is_string( $value ) ) {
-			if ( '' === trim( $value ) ) {
-				return $value;
-			}
+		if ( is_string( $value ) && $this->should_process_acf_string( $value, $field ) ) {
 			return $this->processor->process_content( $value );
-		}
-
-		if ( is_array( $value ) ) {
-			return $this->process_array_value( $value, $post_id, $field );
 		}
 
 		return $value;
 	}
 
-	private function process_array_value( $value, $post_id, $field ) {
-		foreach ( $value as $key => $val ) {
-			if ( is_string( $val ) ) {
-				if ( '' !== trim( $val ) ) {
-					$value[ $key ] = $this->processor->process_content( $val );
-				}
-			} elseif ( is_array( $val ) ) {
-				$value[ $key ] = $this->process_array_value( $val, $post_id, $field );
-			}
+	private function should_process_acf_string( $value, $field ) {
+		if ( '' === trim( $value ) ) {
+			return false;
 		}
-		return $value;
+
+		$field_type = isset( $field['type'] ) ? $field['type'] : '';
+		$content_field_types = array( 'wysiwyg', 'textarea' );
+
+		if ( in_array( $field_type, $content_field_types, true ) ) {
+			return true;
+		}
+
+		// Without field metadata, only process strings that already look like HTML content.
+		return '' === $field_type && preg_match( '/<\s*(p|div|section|article|main|span|strong|em|ul|ol|li|blockquote|br|h[1-6])\b/i', $value );
 	}
 
 	public function start_output_buffer() {
