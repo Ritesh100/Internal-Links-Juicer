@@ -81,7 +81,8 @@ class OILM_ACF_Compat {
 		}
 
 		$link_regex = $this->get_generated_link_regex();
-		if ( ! preg_match( $link_regex, $html ) ) {
+		$escaped_link_regex = $this->get_escaped_generated_link_regex();
+		if ( ! preg_match( $link_regex, $html ) && ! preg_match( $escaped_link_regex, $html ) ) {
 			return $html;
 		}
 
@@ -118,8 +119,8 @@ class OILM_ACF_Compat {
 				$id = preg_quote( substr( $sel, 1 ), '#' );
 				$html = preg_replace_callback(
 					'#<(\w+)[^>]*\bid\s*=\s*["\']' . $id . '["\'][^>]*>.*?</\1>#is',
-					function( $m ) use ( $link_regex ) {
-						return preg_replace( $link_regex, '$2', $m[0] );
+					function( $m ) use ( $link_regex, $escaped_link_regex ) {
+						return $this->strip_generated_links_from_match( $m[0], $link_regex, $escaped_link_regex );
 					},
 					$html
 				);
@@ -127,8 +128,8 @@ class OILM_ACF_Compat {
 				$class = preg_quote( substr( $sel, 1 ), '#' );
 				$html = preg_replace_callback(
 					'#<(\w+)[^>]*\bclass\s*=\s*(["\'])[^"\']*\b' . $class . '\b[^"\']*\2[^>]*>.*?</\1>#is',
-					function( $m ) use ( $link_regex ) {
-						return preg_replace( $link_regex, '$2', $m[0] );
+					function( $m ) use ( $link_regex, $escaped_link_regex ) {
+						return $this->strip_generated_links_from_match( $m[0], $link_regex, $escaped_link_regex );
 					},
 					$html
 				);
@@ -136,8 +137,8 @@ class OILM_ACF_Compat {
 				$role = preg_quote( $role_match[1], '#' );
 				$html = preg_replace_callback(
 					'#<(\w+)[^>]*\brole\s*=\s*["\']' . $role . '["\'][^>]*>.*?</\1>#is',
-					function( $m ) use ( $link_regex ) {
-						return preg_replace( $link_regex, '$2', $m[0] );
+					function( $m ) use ( $link_regex, $escaped_link_regex ) {
+						return $this->strip_generated_links_from_match( $m[0], $link_regex, $escaped_link_regex );
 					},
 					$html
 				);
@@ -145,8 +146,8 @@ class OILM_ACF_Compat {
 				$tag = preg_quote( $sel, '#' );
 				$html = preg_replace_callback(
 					'#<' . $tag . '\b[^>]*>.*?</' . $tag . '\s*>#is',
-					function( $m ) use ( $link_regex ) {
-						return preg_replace( $link_regex, '$2', $m[0] );
+					function( $m ) use ( $link_regex, $escaped_link_regex ) {
+						return $this->strip_generated_links_from_match( $m[0], $link_regex, $escaped_link_regex );
 					},
 					$html
 				);
@@ -154,6 +155,11 @@ class OILM_ACF_Compat {
 		}
 
 		return $html;
+	}
+
+	private function strip_generated_links_from_match( $html, $link_regex, $escaped_link_regex ) {
+		$html = preg_replace( $link_regex, '$2', $html );
+		return preg_replace( $escaped_link_regex, '$2', $html );
 	}
 
 	private function get_generated_link_regex() {
@@ -169,5 +175,20 @@ class OILM_ACF_Compat {
 		$class_pattern = implode( '|', array_map( 'preg_quote', $classes ) );
 
 		return '#<a\b[^>]*\bclass\s*=\s*(["\'])[^"\']*\b(?:' . $class_pattern . ')\b[^"\']*\1[^>]*>(.*?)</a>#is';
+	}
+
+	private function get_escaped_generated_link_regex() {
+		$settings = get_option( 'oilm_settings' );
+		$class_value = isset( $settings['link_css_class'] ) ? $settings['link_css_class'] : 'op-internal-link';
+		$classes = preg_split( '/\s+/', trim( (string) $class_value ) );
+		$classes = array_filter( array_map( 'sanitize_html_class', $classes ) );
+
+		if ( empty( $classes ) ) {
+			$classes = array( 'op-internal-link' );
+		}
+
+		$class_pattern = implode( '|', array_map( 'preg_quote', $classes ) );
+
+		return '~&lt;a\b(?:(?!&gt;).)*\bclass\s*=\s*(&quot;|&#039;)[^&]*(?:' . $class_pattern . ')[^&]*\1(?:(?!&gt;).)*&gt;(.*?)&lt;/a&gt;~is';
 	}
 }
