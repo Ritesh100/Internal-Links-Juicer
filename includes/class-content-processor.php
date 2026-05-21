@@ -94,8 +94,9 @@ class OILM_Content_Processor {
         
         // 1. Structural exclusions (Tags and standard areas to ignore)
         $tag_exclusions = array(
-            'a', 'script', 'style', 'code', 'pre', 'textarea', 'button', 
-            'iframe', 'header', 'nav', 'footer', 'aside', 'noscript', 'img'
+            'a', 'script', 'style', 'code', 'pre', 'textarea', 'button',
+            'select', 'option', 'label', 'iframe', 'header', 'nav', 'footer',
+            'aside', 'noscript', 'img', 'svg'
         );
         
         if ( isset( $this->settings['exclude_headings'] ) && $this->settings['exclude_headings'] ) {
@@ -104,9 +105,12 @@ class OILM_Content_Processor {
 
         // 2. Class/ID exclusions for headers, navbars, sub-menus and mega menus
         $extra_exclusions = array(
-            '.navbar', '.site-header', '.main-navigation', '.navigation', 
-            '.menu-container', '.sub-menu', '.children', '.menu-item-has-children',
-            '.page_item_has_children', '#header', '#nav', '.elementor-location-header'
+            '.navbar', '.site-header', '.main-navigation', '.navigation',
+            '.menu', '.menu-item', '.menu-container', '.nav-menu',
+            '.wp-block-navigation', '.wp-block-navigation-item',
+            '.sub-menu', '.children', '.menu-item-has-children',
+            '.page_item_has_children', '#header', '#nav', '.elementor-location-header',
+            '[role="navigation"]'
         );
 
         if ( isset( $this->settings['exclude_elements'] ) && is_array( $this->settings['exclude_elements'] ) ) {
@@ -266,6 +270,9 @@ class OILM_Content_Processor {
             } elseif ( $excl[0] === '#' ) {
                 $id = substr( $excl, 1 );
                 $conditions[] = "not(ancestor::*[@id='$id'])";
+            } elseif ( preg_match( '/^\[role=["\']?([^"\']+)["\']?\]$/', $excl, $match ) ) {
+                $role = strtolower( $match[1] );
+                $conditions[] = "not(ancestor::*[translate(@role, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')='$role'])";
             } else {
                 $conditions[] = "not(ancestor::$excl)";
             }

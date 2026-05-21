@@ -94,9 +94,7 @@ class OILM_Plugin {
 		add_filter( 'widget_text', array( $processor, 'process_content' ), 99 );
 		add_filter( 'widget_block_content', array( $processor, 'process_content' ), 99 );
 
-		// Process rendered blocks in header/footer areas
-		add_filter( 'render_block_core/site-title', array( $processor, 'process_content' ), 99 );
-		add_filter( 'render_block_core/site-tagline', array( $processor, 'process_content' ), 99 );
+		// Intentionally do not process site title/tagline blocks because they commonly render in header navigation areas.
 	}
 
 	public function run() {

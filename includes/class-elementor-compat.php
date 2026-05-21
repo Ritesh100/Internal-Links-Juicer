@@ -30,7 +30,7 @@ class OILM_Elementor_Compat {
 		}
 
 		// Process specific widgets that typically hold text
-		$allowed_widgets = array( 'text-editor', 'heading', 'icon-box' );
+		$allowed_widgets = array( 'text-editor', 'icon-box' );
 		if ( in_array( $widget->get_name(), $allowed_widgets ) ) {
 			return $this->processor->process_content( $content );
 		}
