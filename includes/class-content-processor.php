@@ -154,6 +154,8 @@ class OILM_Content_Processor {
             $text = $node->nodeValue;
             if ( strlen(trim( $text )) < 2 ) continue;
 
+            $best_match = null;
+
             foreach ( $this->rules as $rule ) {
                 if ( in_array( rtrim( $rule['url'], '/' ), $existing_hrefs ) ) continue;
 
@@ -180,64 +182,83 @@ class OILM_Content_Processor {
                         $matched_text = $matches[1][0];
                         $match_start = $matches[1][1];
                         $match_length = strlen( $matched_text );
-
-                        $before = substr( $text, 0, $match_start );
-                        $after = substr( $text, $match_start + $match_length );
-
-                        $open_new_tab = $global_override_rule_attributes ? !empty($this->settings['default_new_tab']) : ( ! empty( $rule['open_new_tab'] ) );
-                        $add_nofollow = $global_override_rule_attributes ? !empty($this->settings['default_nofollow']) : ( ! empty( $rule['is_nofollow'] ) );
-                        
-                        // Build link element using DOM methods (avoid appendXML fragility)
-                        $link = $dom->createElement( 'a' );
-                        $link->setAttribute( 'href', esc_url( $rule['url'] ) );
-                        if ( $link_css_class ) {
-                            $link->setAttribute( 'class', $link_css_class );
+                        if ( null === $best_match || $match_start < $best_match['start'] ) {
+                            $best_match = array(
+                                'rule'         => $rule,
+                                'keyword'      => $keyword,
+                                'kw_key'       => $kw_key,
+                                'matched_text' => $matched_text,
+                                'start'        => $match_start,
+                                'length'       => $match_length,
+                            );
                         }
-                        if ( $open_new_tab ) {
-                            $link->setAttribute( 'target', '_blank' );
-                        }
-                        $rel_parts = [];
-                        if ( $add_nofollow ) $rel_parts[] = 'nofollow';
-                        if ( ! empty( $rule['is_sponsored'] ) ) $rel_parts[] = 'sponsored';
-                        if ( $open_new_tab ) $rel_parts[] = 'noopener';
-                        if ( ! empty( $rel_parts ) ) {
-                            $link->setAttribute( 'rel', implode( ' ', $rel_parts ) );
-                        }
-                        if ( ! empty( $rule['title_attr'] ) ) {
-                            $link->setAttribute( 'title', $rule['title_attr'] );
-                        }
-                        $link->appendChild( $dom->createTextNode( $matched_text ) );
-
-                        // Build fragment using DOM methods only
-                        $fragment = $dom->createDocumentFragment();
-                        if ( $before !== '' ) {
-                            $fragment->appendChild( $dom->createTextNode( $before ) );
-                        }
-                        $fragment->appendChild( $link );
-
-                        $parent = $node->parentNode;
-                        $parent->replaceChild( $fragment, $node );
-
-                        $this->page_links_count++;
-                        $this->url_links_count[$rule['url']] = ($this->url_links_count[$rule['url']] ?? 0) + 1;
-                        $this->keyword_links_count[$kw_key] = ($this->keyword_links_count[$kw_key] ?? 0) + 1;
-                        $this->keyword_links_count[$rule['id']] = ($this->keyword_links_count[$rule['id']] ?? 0) + 1;
-
-                        $this->add_rule_hit( $rules_hit, $rule['id'] );
-                        $this->add_location_hit( $location_hits, $rule['id'], $keyword );
-                        $updates_made = true;
-
-                        // Insert trailing text into processing list so remaining
-                        // keywords/rules can continue matching in the same text
-                        if ( $after !== '' ) {
-                            $trailing = $dom->createTextNode( $after );
-                            $parent->appendChild( $trailing );
-                            array_splice( $text_nodes, $node_idx + 1, 0, array( $trailing ) );
-                        }
-
-                        break 2;
                     }
                 }
+            }
+
+            if ( null === $best_match ) {
+                continue;
+            }
+
+            $rule = $best_match['rule'];
+            $matched_text = $best_match['matched_text'];
+            $match_start = $best_match['start'];
+            $match_length = $best_match['length'];
+            $keyword = $best_match['keyword'];
+            $kw_key = $best_match['kw_key'];
+
+            $before = substr( $text, 0, $match_start );
+            $after = substr( $text, $match_start + $match_length );
+
+            $open_new_tab = $global_override_rule_attributes ? !empty($this->settings['default_new_tab']) : ( ! empty( $rule['open_new_tab'] ) );
+            $add_nofollow = $global_override_rule_attributes ? !empty($this->settings['default_nofollow']) : ( ! empty( $rule['is_nofollow'] ) );
+
+            // Build link element using DOM methods (avoid appendXML fragility)
+            $link = $dom->createElement( 'a' );
+            $link->setAttribute( 'href', esc_url( $rule['url'] ) );
+            if ( $link_css_class ) {
+                $link->setAttribute( 'class', $link_css_class );
+            }
+            if ( $open_new_tab ) {
+                $link->setAttribute( 'target', '_blank' );
+            }
+            $rel_parts = [];
+            if ( $add_nofollow ) $rel_parts[] = 'nofollow';
+            if ( ! empty( $rule['is_sponsored'] ) ) $rel_parts[] = 'sponsored';
+            if ( $open_new_tab ) $rel_parts[] = 'noopener';
+            if ( ! empty( $rel_parts ) ) {
+                $link->setAttribute( 'rel', implode( ' ', $rel_parts ) );
+            }
+            if ( ! empty( $rule['title_attr'] ) ) {
+                $link->setAttribute( 'title', $rule['title_attr'] );
+            }
+            $link->appendChild( $dom->createTextNode( $matched_text ) );
+
+            // Build fragment using DOM methods only
+            $fragment = $dom->createDocumentFragment();
+            if ( $before !== '' ) {
+                $fragment->appendChild( $dom->createTextNode( $before ) );
+            }
+            $fragment->appendChild( $link );
+
+            $parent = $node->parentNode;
+            $parent->replaceChild( $fragment, $node );
+
+            $this->page_links_count++;
+            $this->url_links_count[$rule['url']] = ($this->url_links_count[$rule['url']] ?? 0) + 1;
+            $this->keyword_links_count[$kw_key] = ($this->keyword_links_count[$kw_key] ?? 0) + 1;
+            $this->keyword_links_count[$rule['id']] = ($this->keyword_links_count[$rule['id']] ?? 0) + 1;
+
+            $this->add_rule_hit( $rules_hit, $rule['id'] );
+            $this->add_location_hit( $location_hits, $rule['id'], $keyword );
+            $updates_made = true;
+
+            // Insert trailing text into processing list so remaining
+            // keywords/rules can continue matching in the same text
+            if ( $after !== '' ) {
+                $trailing = $dom->createTextNode( $after );
+                $parent->appendChild( $trailing );
+                array_splice( $text_nodes, $node_idx + 1, 0, array( $trailing ) );
             }
         }
 
