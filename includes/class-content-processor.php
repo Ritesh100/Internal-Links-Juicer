@@ -118,14 +118,15 @@ class OILM_Content_Processor {
         }
 
         // Build XPath: Only select text nodes that are NOT children of the excluded tags or classes
-        $query = $this->build_exclusion_xpath( $tag_exclusions, $extra_exclusions );
+        $conditions = $this->build_exclusion_conditions( $tag_exclusions, $extra_exclusions );
+        $query = $this->build_exclusion_xpath( $conditions );
         $text_nodes = array();
         foreach ( $xpath->query( $query ) as $tn ) {
             $text_nodes[] = $tn;
         }
 
         $existing_hrefs = array();
-        $anchors = $xpath->query('//a/@href');
+        $anchors = $xpath->query('//a[' . implode( ' and ', $conditions ) . ']/@href');
         foreach ( $anchors as $anchor ) {
             $existing_hrefs[] = rtrim( $anchor->nodeValue, '/' );
         }
@@ -256,7 +257,7 @@ class OILM_Content_Processor {
         return $content;
     }
 
-    private function build_exclusion_xpath( $tag_exclusions, $extra_exclusions ) {
+    private function build_exclusion_conditions( $tag_exclusions, $extra_exclusions ) {
         $conditions = array();
         foreach ( $tag_exclusions as $tag ) {
             $conditions[] = "not(ancestor::$tag)";
@@ -277,6 +278,10 @@ class OILM_Content_Processor {
                 $conditions[] = "not(ancestor::$excl)";
             }
         }
+        return $conditions;
+    }
+
+    private function build_exclusion_xpath( $conditions ) {
         // CRITICAL: only select text nodes that are actually inside elements, not attributes
         return "//text()[" . implode( ' and ', $conditions ) . "]";
     }
