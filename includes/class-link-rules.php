@@ -84,6 +84,10 @@ class OILM_Rules_List_Table extends WP_List_Table {
 			return;
 		}
 
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Unauthorized', 'op-internal-link-manager' ) );
+		}
+
 		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ), 'bulk-rules' ) ) {
 			return;
 		}
@@ -97,14 +101,21 @@ class OILM_Rules_List_Table extends WP_List_Table {
 		$table_name = $wpdb->prefix . 'oilm_rules';
 		$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
 
+		$delete_failed = false;
+
 		foreach ( $rule_ids as $rule_id ) {
-			$wpdb->delete( $table_name, array( 'id' => $rule_id ) );
-			$wpdb->delete( $locations_table_name, array( 'rule_id' => $rule_id ) );
+			// Remove dependent rows first so databases enforcing foreign keys allow the rule deletion.
+			$wpdb->delete( $locations_table_name, array( 'rule_id' => $rule_id ), array( '%d' ) );
+
+			if ( false === $wpdb->delete( $table_name, array( 'id' => $rule_id ), array( '%d' ) ) ) {
+				$delete_failed = true;
+			}
 		}
 
 		delete_transient( 'oilm_active_rules' );
 
-		wp_redirect( admin_url( 'admin.php?page=op-internal-link-manager&message=deleted' ) );
+		$message = $delete_failed ? 'delete_failed' : 'deleted';
+		wp_safe_redirect( admin_url( 'admin.php?page=op-internal-link-manager&message=' . $message ) );
 		exit;
 	}
 
@@ -189,11 +200,17 @@ class OILM_Link_Rules {
 		$list_table = new OILM_Rules_List_Table();
 		$list_table->process_bulk_action();
 		$list_table->prepare_items();
+		$message = isset( $_GET['message'] ) ? sanitize_key( wp_unslash( $_GET['message'] ) ) : '';
 		?>
 		<div class="wrap oilm-modern-wrap">
 			<h1 class="wp-heading-inline">Internal Link Rules</h1>
 			<a href="?page=op-internal-link-manager&action=new" class="page-title-action">Add New</a>
 			<hr class="wp-header-end">
+			<?php if ( 'deleted' === $message ) : ?>
+				<div class="notice notice-success is-dismissible"><p><?php esc_html_e( 'Keyword rule deleted.', 'op-internal-link-manager' ); ?></p></div>
+			<?php elseif ( 'delete_failed' === $message ) : ?>
+				<div class="notice notice-error"><p><?php esc_html_e( 'The keyword rule could not be deleted. Please try again.', 'op-internal-link-manager' ); ?></p></div>
+			<?php endif; ?>
 			<form id="rules-filter" method="get">
 				<input type="hidden" name="page" value="<?php echo esc_attr( $_REQUEST['page'] ); ?>" />
 				<?php $list_table->display(); ?>
@@ -489,16 +506,26 @@ class OILM_Link_Rules {
 		}
 
 		$rule_id = isset( $_GET['rule'] ) ? absint( $_GET['rule'] ) : 0;
-		if ( $rule_id && isset( $_GET['_wpnonce'] ) && wp_verify_nonce( $_GET['_wpnonce'], 'oilm_delete_rule_' . $rule_id ) ) {
-			global $wpdb;
-			$table_name = $wpdb->prefix . 'oilm_rules';
-			$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
-			$wpdb->delete( $table_name, array( 'id' => $rule_id ) );
-			$wpdb->delete( $locations_table_name, array( 'rule_id' => $rule_id ) );
+		$nonce = isset( $_GET['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_GET['_wpnonce'] ) ) : '';
+
+		if ( ! $rule_id || ! wp_verify_nonce( $nonce, 'oilm_delete_rule_' . $rule_id ) ) {
+			wp_die( esc_html__( 'Security check failed', 'op-internal-link-manager' ) );
+		}
+
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'oilm_rules';
+		$locations_table_name = $wpdb->prefix . 'oilm_insertion_locations';
+
+		// Remove dependent rows first so databases enforcing foreign keys allow the rule deletion.
+		$wpdb->delete( $locations_table_name, array( 'rule_id' => $rule_id ), array( '%d' ) );
+		$rule_deleted = $wpdb->delete( $table_name, array( 'id' => $rule_id ), array( '%d' ) );
+
+		if ( false !== $rule_deleted ) {
 			delete_transient( 'oilm_active_rules' );
 		}
-		
-		wp_redirect( admin_url( 'admin.php?page=op-internal-link-manager&message=deleted' ) );
+
+		$message = false === $rule_deleted ? 'delete_failed' : 'deleted';
+		wp_safe_redirect( admin_url( 'admin.php?page=op-internal-link-manager&message=' . $message ) );
 		exit;
 	}
 
