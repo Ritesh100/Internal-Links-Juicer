@@ -16,25 +16,28 @@ class OILM_GitHub_Updater {
 	private $branch;
 	private $api_url;
 	private $cache_key;
+	private $installed_commit_key;
 
 	public function __construct( $plugin_file, $version, $owner, $repo, $branch = 'main' ) {
-		$this->plugin_file     = $plugin_file;
-		$this->plugin_basename = plugin_basename( $plugin_file );
-		$this->plugin_slug     = dirname( $this->plugin_basename );
+		$this->plugin_file          = $plugin_file;
+		$this->plugin_basename      = plugin_basename( $plugin_file );
+		$this->plugin_slug          = dirname( $this->plugin_basename );
 		if ( '.' === $this->plugin_slug ) {
 			$this->plugin_slug = basename( $this->plugin_basename, '.php' );
 		}
-		$this->version         = $version;
-		$this->owner           = $owner;
-		$this->repo            = $repo;
-		$this->branch          = $branch;
-		$this->api_url         = 'https://api.github.com/repos/' . rawurlencode( $owner ) . '/' . rawurlencode( $repo );
-		$this->cache_key       = 'oilm_github_update_' . md5( $owner . '/' . $repo . '/' . $branch );
+		$this->version              = $version;
+		$this->owner                = $owner;
+		$this->repo                 = $repo;
+		$this->branch               = $branch;
+		$this->api_url              = 'https://api.github.com/repos/' . rawurlencode( $owner ) . '/' . rawurlencode( $repo );
+		$this->cache_key            = 'oilm_github_update_' . md5( $owner . '/' . $repo . '/' . $branch );
+		$this->installed_commit_key = 'oilm_github_installed_commit_' . md5( $owner . '/' . $repo . '/' . $branch );
 	}
 
 	public function init() {
 		add_filter( 'pre_set_site_transient_update_plugins', array( $this, 'check_for_update' ) );
 		add_filter( 'site_transient_update_plugins', array( $this, 'remove_stale_update_notice' ) );
+		add_filter( 'update_plugins_github.com', array( $this, 'github_update' ), 10, 4 );
 		add_filter( 'plugins_api', array( $this, 'plugin_information' ), 20, 3 );
 		add_filter( 'upgrader_pre_download', array( $this, 'download_private_package' ), 10, 4 );
 		add_filter( 'upgrader_source_selection', array( $this, 'rename_github_source' ), 10, 4 );
@@ -57,7 +60,9 @@ class OILM_GitHub_Updater {
 			return $transient;
 		}
 
-		if ( ! version_compare( $remote['version'], $this->installed_version(), '>' ) ) {
+		$update_version = $this->available_update_version( $remote );
+
+		if ( ! $update_version ) {
 			return $this->mark_as_current( $transient, $remote['version'] );
 		}
 
@@ -65,9 +70,38 @@ class OILM_GitHub_Updater {
 			$transient->response = array();
 		}
 
-		$transient->response[ $this->plugin_basename ] = $this->update_payload( $remote );
+		$transient->response[ $this->plugin_basename ] = $this->update_payload( $remote, $update_version );
 
 		return $transient;
+	}
+
+	/**
+	 * Supplies update data through the Update URI hostname hook used by WordPress 5.8+.
+	 */
+	public function github_update( $update, $plugin_data, $plugin_file, $locales ) {
+		unset( $plugin_data, $locales );
+
+		if ( $plugin_file !== $this->plugin_basename ) {
+			return $update;
+		}
+
+		$force_refresh = isset( $_GET['force-check'] ) || isset( $_GET['forcecheck'] );
+		$remote = $this->get_remote_plugin_data( $force_refresh );
+
+		if ( empty( $remote['version'] ) ) {
+			return false;
+		}
+
+		$update_version = $this->available_update_version( $remote );
+
+		if ( ! $update_version ) {
+			return false;
+		}
+
+		$payload = (array) $this->update_payload( $remote, $update_version );
+		$payload['version'] = $update_version;
+
+		return $payload;
 	}
 
 	public function remove_stale_update_notice( $transient ) {
@@ -183,8 +217,23 @@ class OILM_GitHub_Updater {
 	}
 
 	public function clear_update_cache( $upgrader, $hook_extra ) {
-		if ( empty( $hook_extra['plugins'] ) || ! in_array( $this->plugin_basename, (array) $hook_extra['plugins'], true ) ) {
+		$updated_plugins = isset( $hook_extra['plugins'] ) ? (array) $hook_extra['plugins'] : array();
+
+		if ( ! empty( $hook_extra['plugin'] ) ) {
+			$updated_plugins[] = $hook_extra['plugin'];
+		}
+
+		if ( ! in_array( $this->plugin_basename, $updated_plugins, true ) ) {
 			return;
+		}
+
+		if ( isset( $upgrader->result ) && is_wp_error( $upgrader->result ) ) {
+			return;
+		}
+
+		$remote = $this->get_remote_plugin_data( false );
+		if ( ! empty( $remote['commit_sha'] ) ) {
+			update_site_option( $this->installed_commit_key, $remote['commit_sha'] );
 		}
 
 		delete_site_transient( $this->cache_key );
@@ -205,6 +254,8 @@ class OILM_GitHub_Updater {
 			'requires_php' => '8.0',
 			'description'  => '',
 			'changelog'    => '',
+			'commit_sha'   => '',
+			'commit_date'  => '',
 		);
 
 		$plugin_file = $this->remote_get( $this->raw_url( basename( $this->plugin_file ) ) );
@@ -213,6 +264,8 @@ class OILM_GitHub_Updater {
 		if ( ! $plugin_file ) {
 			return $defaults;
 		}
+
+		$commit = $this->remote_get_json( $this->api_url . '/commits/' . rawurlencode( $this->branch ) );
 
 		$data = array_merge(
 			$defaults,
@@ -223,6 +276,8 @@ class OILM_GitHub_Updater {
 				'requires_php' => $this->read_readme_value( $readme, 'Requires PHP' ) ?: $defaults['requires_php'],
 				'description'  => $this->read_readme_section( $readme, 'Description' ),
 				'changelog'    => $this->read_readme_section( $readme, 'Changelog' ),
+				'commit_sha'   => isset( $commit['sha'] ) ? sanitize_text_field( $commit['sha'] ) : '',
+				'commit_date'  => isset( $commit['commit']['committer']['date'] ) ? sanitize_text_field( $commit['commit']['committer']['date'] ) : '',
 			)
 		);
 
@@ -231,12 +286,14 @@ class OILM_GitHub_Updater {
 		return $data;
 	}
 
-	private function update_payload( $remote ) {
+	private function update_payload( $remote, $update_version = '' ) {
+		$update_version = $update_version ?: $remote['version'];
+
 		return (object) array(
 			'id'           => $this->github_url(),
 			'slug'         => $this->plugin_slug,
 			'plugin'       => $this->plugin_basename,
-			'new_version'  => $remote['version'],
+			'new_version'  => $update_version,
 			'url'          => $this->github_url(),
 			'package'      => $this->zip_url(),
 			'tested'       => $remote['tested'],
@@ -278,6 +335,39 @@ class OILM_GitHub_Updater {
 		return $this->version;
 	}
 
+	/**
+	 * Returns a newer semantic version, or a commit build version for a same-version push.
+	 */
+	private function available_update_version( $remote ) {
+		$installed_version = $this->installed_version();
+
+		if ( version_compare( $remote['version'], $installed_version, '>' ) ) {
+			return $remote['version'];
+		}
+
+		// Never install a branch whose declared version is older than the installed plugin.
+		if ( version_compare( $remote['version'], $installed_version, '<' ) || empty( $remote['commit_sha'] ) ) {
+			return '';
+		}
+
+		$installed_commit = (string) get_site_option( $this->installed_commit_key, '' );
+
+		// Establish a baseline after this commit-aware updater is first installed.
+		if ( ! $installed_commit ) {
+			update_site_option( $this->installed_commit_key, $remote['commit_sha'] );
+			return '';
+		}
+
+		if ( hash_equals( $installed_commit, $remote['commit_sha'] ) ) {
+			return '';
+		}
+
+		$commit_timestamp = ! empty( $remote['commit_date'] ) ? strtotime( $remote['commit_date'] ) : false;
+		$build = $commit_timestamp ? gmdate( 'YmdHis', $commit_timestamp ) : gmdate( 'YmdHis' );
+
+		return $remote['version'] . '.' . $build;
+	}
+
 	private function remote_get( $url ) {
 		$headers = array();
 		if ( $this->github_token() ) {
@@ -301,6 +391,24 @@ class OILM_GitHub_Updater {
 		}
 
 		return (string) wp_remote_retrieve_body( $response );
+	}
+
+	private function remote_get_json( $url ) {
+		$response = wp_remote_get(
+			$url,
+			array(
+				'timeout' => 15,
+				'headers' => $this->github_headers( 'application/vnd.github+json' ),
+			)
+		);
+
+		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+			return array();
+		}
+
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		return is_array( $data ) ? $data : array();
 	}
 
 	private function read_header( $contents, $header ) {

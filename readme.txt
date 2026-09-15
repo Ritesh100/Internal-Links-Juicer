@@ -4,7 +4,7 @@ Tags: internal links, seo, auto link, internal linking, link building
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.1.2
+Stable tag: 1.1.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,13 @@ No. The plugin parses the content on-the-fly when rendering the page, leaving yo
 Yes, it is designed to be compatible with Elementor widgets and templates.
 
 == Changelog ==
+
+= 1.1.5 =
+* Release: 2026-09-15
+* Detects new pushes to the configured GitHub branch using its commit identifier, even when the semantic version is unchanged.
+* Uses WordPress's Update URI hook for native update discovery on WordPress 5.8 and newer.
+* Fixes cache cleanup after both single and bulk plugin updates.
+* Fixes deleting keyword rules that have insertion-location records.
 
 = 1.1.2 =
 * Release: 2026-05-08
