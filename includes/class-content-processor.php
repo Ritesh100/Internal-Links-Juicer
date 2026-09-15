@@ -7,7 +7,7 @@ class OILM_Content_Processor {
     private $page_links_count = 0;
     private $url_links_count = array();
     private $keyword_links_count = array();
-    private $processed_posts = array();
+    private $processed_content_posts = array();
     private $current_post_id = 0;
     private $current_post_url = '';
     private $current_source_type = 'content';
@@ -64,11 +64,15 @@ class OILM_Content_Processor {
                         return $content;
                     }
                 }
-                if ( in_array( $post->ID, $this->processed_posts ) && $this->current_source_type !== 'acf' ) {
-                    return $content;
-                }
-                if ( $this->current_source_type !== 'acf' ) {
-                    $this->processed_posts[] = $post->ID;
+                // Only deduplicate the main post body. Fragment filters such as
+                // excerpts, comments, widgets, Elementor, WooCommerce, and ACF
+                // must each be allowed to process their own rendered output.
+                if ( 'content' === $this->current_source_type ) {
+                    if ( in_array( $post->ID, $this->processed_content_posts, true ) ) {
+                        return $content;
+                    }
+
+                    $this->processed_content_posts[] = $post->ID;
                 }
             }
         }
@@ -80,13 +84,9 @@ class OILM_Content_Processor {
         $dom = new DOMDocument();
         libxml_use_internal_errors( true );
         
-        if ( function_exists( 'mb_convert_encoding' ) ) {
-            $html = mb_convert_encoding( $content, 'HTML-ENTITIES', 'UTF-8' );
-        } else {
-            $html = $content;
-        }
-
-        $html = '<?xml encoding="utf-8" ?><div>' . $html . '</div>';
+        // The XML encoding declaration makes DOMDocument parse the fragment as
+        // UTF-8 without the deprecated mb_convert_encoding HTML-ENTITIES mode.
+        $html = '<?xml encoding="utf-8" ?><div>' . $content . '</div>';
         $dom->loadHTML( $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
         libxml_clear_errors();
 
@@ -320,9 +320,24 @@ class OILM_Content_Processor {
         $this->current_post_id = $post ? absint( $post->ID ) : 0;
         $this->current_post_url = $this->current_post_id ? get_permalink( $this->current_post_id ) : '';
         $this->current_source_type = 'content';
-        $filter = current_filter();
-        $map = ['get_the_excerpt' => 'excerpt', 'comment_text' => 'comment', 'acf' => 'acf', 'woocommerce' => 'woocommerce'];
-        foreach($map as $key => $val) { if (strpos((string)$filter, $key) !== false) { $this->current_source_type = $val; break; } }
+        $filter = (string) current_filter();
+        $map = array(
+            'elementor/widget/render_content' => 'elementor_widget',
+            'elementor/frontend/the_content'  => 'elementor',
+            'woocommerce_short_description'  => 'woocommerce',
+            'widget_block_content'            => 'widget',
+            'get_the_excerpt'                 => 'excerpt',
+            'comment_text'                    => 'comment',
+            'acf/format_value'                => 'acf',
+            'widget_text'                     => 'widget',
+        );
+
+        foreach ( $map as $filter_name => $source_type ) {
+            if ( false !== strpos( $filter, $filter_name ) ) {
+                $this->current_source_type = $source_type;
+                break;
+            }
+        }
     }
 
     private function add_location_hit( &$location_hits, $rule_id, $keyword ) {

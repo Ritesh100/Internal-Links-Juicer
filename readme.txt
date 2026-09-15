@@ -4,7 +4,7 @@ Tags: internal links, seo, auto link, internal linking, link building
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -46,6 +46,12 @@ No. The plugin parses the content on-the-fly when rendering the page, leaving yo
 Yes, it is designed to be compatible with Elementor widgets and templates.
 
 == Changelog ==
+
+= 1.1.6 =
+* Release: 2026-09-15
+* Keeps main content, excerpts, comments, widgets, Elementor widgets, WooCommerce descriptions, and ACF fields in separate processing contexts.
+* Processes rendered content from all Elementor widget types while preserving structural exclusions.
+* Removes deprecated HTML entity conversion while preserving UTF-8 content.
 
 = 1.1.5 =
 * Release: 2026-09-15
